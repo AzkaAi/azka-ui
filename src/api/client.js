@@ -3,14 +3,14 @@ const API_BASE = 'http://100.103.30.38:8000';
 const WS_BASE = 'ws://100.103.30.38:8000';
 
 export async function startTask(taskDescription, taskId = null) {
-  const response = await fetch(`${API_BASE}/start-task`, {
+  const response = await fetch(`${API_BASE}/spawn-subtask`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      task_id: taskId,
       task_description: taskDescription,
+      parent_task_id: taskId || "root"
     }),
   });
   return response.json();

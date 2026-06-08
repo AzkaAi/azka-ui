@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Icon } from './icons.jsx';
-import { TREE, FILE_VIEW, ARTIFACTS, METRICS, MCTS_TREE, FOOTER } from './data.jsx';
 
 /* ---------- HEADER ---------- */
 export function Header({ onStartTask }) {
@@ -128,207 +127,37 @@ export function LeftPanel({ tasks, selectedId, onSelect, onStartTask }) {
 
 /* ---------- RIGHT PANEL ---------- */
 function FilesTab() {
-  const [sel, setSel] = useState('token-manager.ts');
   return (
-    <>
-      <div className="filetree scroll">
-        {TREE.map((row, i) => {
-          const isFolder = row.type === 'folder';
-          const selected = !isFolder && row.name === sel;
-          return (
-            <div
-              key={i}
-              className={'tree-row' + (isFolder ? ' folder' : '') + (selected ? ' sel' : '')}
-              style={{ paddingLeft: (7 + row.depth * 15) + 'px' }}
-              onClick={() => !isFolder && setSel(row.name)}
-            >
-              <span className="tw">
-                {isFolder ? <Icon name={row.open ? 'chevD' : 'chevR'} /> : null}
-              </span>
-              <span className="fi">
-                <Icon name={isFolder ? (row.open ? 'folderOpen' : 'folder') : 'fileCode'} />
-              </span>
-              <span className="nm">{row.name}</span>
-              {row.modified ? <span className="mod" title="Modified" /> : null}
-            </div>
-          );
-        })}
-      </div>
-      <div className="fileview">
-        <div className="fileview-head">
-          <span className="fp">
-            <span className="dir">{FILE_VIEW.dir}</span>{FILE_VIEW.name}
-          </span>
-          {FILE_VIEW.modified ? <span className="badge-mod">Modified</span> : null}
-          <span className="spacer" />
-          <span className="lines">{FILE_VIEW.lineCount + ' lines'}</span>
-        </div>
-        <div className="fileview-body scroll">
-          <div className="codeblock">
-            {FILE_VIEW.code.map((r, i) => (
-              <div className="code-row" key={i}>
-                <span className="ln">{r.n}</span>
-                <span className="lc" dangerouslySetInnerHTML={{ __html: r.html || '\u200b' }} />
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    </>
+    <div className="empty-state">
+      <Icon name="fileCode" size={32} />
+      <p>No files touched yet</p>
+    </div>
   );
 }
 
 function ArtifactsTab() {
   return (
-    <div className="artifacts-list scroll">
-      {ARTIFACTS.map((a, i) => (
-        <div className="art-card" key={i}>
-          <div className="artifact-ico"><Icon name="fileText" /></div>
-          <div className="artifact-info">
-            <div className="fn">{a.filename}</div>
-            <div className="meta">{a.format + ' · ' + a.size}</div>
-          </div>
-          <button className="icon-btn" title="Download"><Icon name="download" /></button>
-        </div>
-      ))}
+    <div className="empty-state">
+      <Icon name="fileOut" size={32} />
+      <p>No artifacts generated yet</p>
     </div>
   );
 }
 
 function MctsTab() {
-  const stateColor = { root: '#64748b', failed: '#e0473e', explored: '#8b5cf6', active: '#4f6ef2', win: '#18a558' };
-  const byId = {};
-  MCTS_TREE.nodes.forEach(n => byId[n.id] = n);
   return (
-    <div className="mcts-tab">
-      <div className="mcts-toolbar">
-        <div className="z">
-          <button className="icon-btn" title="Zoom out"><Icon name="minus" /></button>
-          <button className="icon-btn" title="Zoom in"><Icon name="plus" /></button>
-          <button className="icon-btn" title="Fit"><Icon name="expand" /></button>
-        </div>
-        <span className="spacer" />
-        <div className="legend">
-          <span><span className="nd" style={{ background: '#4f6ef2' }} /> active</span>
-          <span><span className="nd" style={{ background: '#18a558' }} /> win</span>
-          <span><span className="nd" style={{ background: '#e0473e' }} /> failed</span>
-        </div>
-      </div>
-      <div className="mcts-canvas">
-        <svg width="100%" height="100%" viewBox="0 0 372 260" style={{ display: 'block' }}>
-          {MCTS_TREE.edges.map((e, i) => {
-            const a = byId[e[0]], b = byId[e[1]];
-            return (
-              <path
-                key={i}
-                d={`M${a.x} ${a.y+16} C ${a.x} ${(a.y+b.y)/2}, ${b.x} ${(a.y+b.y)/2}, ${b.x} ${b.y-16}`}
-                fill="none"
-                stroke={b.state === 'win' ? '#18a558' : b.state === 'active' ? '#4f6ef2' : '#d3d6de'}
-                strokeWidth={b.state === 'win' || b.state === 'active' ? 2 : 1.4}
-                strokeDasharray={b.state === 'failed' ? '3 3' : 'none'}
-              />
-            );
-          })}
-          {MCTS_TREE.nodes.map((n, i) => {
-            const col = stateColor[n.state];
-            const isWin = n.state === 'win', isActive = n.state === 'active';
-            return (
-              <g key={i} transform={`translate(${n.x},${n.y})`}>
-                {(isWin || isActive) ? <circle r={17} fill={col} opacity={0.12} /> : null}
-                <circle
-                  r={13}
-                  fill="#fff"
-                  stroke={col}
-                  strokeWidth={isWin || isActive ? 2.5 : 1.6}
-                  strokeDasharray={n.state === 'failed' ? '3 2' : 'none'}
-                />
-                {isWin ? (
-                  <path
-                    d="M-4 0 L-1 3 L5 -4"
-                    fill="none"
-                    stroke={col}
-                    strokeWidth={2}
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                ) : (
-                  <text textAnchor="middle" dy="3.5" className="node-label" fill={col} fontWeight={600}>
-                    {n.label}
-                  </text>
-                )}
-                <text textAnchor="middle" y={27} className="node-label" fill="#8a909c">
-                  {n.commit}
-                </text>
-                {n.score !== '—' ? (
-                  <text textAnchor="middle" y={38} className="node-label" fill={col} fontWeight={600}>
-                    {n.score}
-                  </text>
-                ) : null}
-              </g>
-            );
-          })}
-        </svg>
-        <div style={{ position: 'absolute', bottom: 10, left: 12, fontSize: '10.5px', color: 'var(--text-3)', fontFamily: 'var(--mono)' }}>
-          7 nodes · depth 2 · drag to pan · scroll to zoom
-        </div>
-      </div>
+    <div className="empty-state">
+      <Icon name="gitBranch" size={32} />
+      <p>No branches explored yet</p>
     </div>
   );
 }
 
 function MetricsTab() {
   return (
-    <div className="metrics scroll">
-      <div className="metric-section-t">Token Usage</div>
-      <div className="metric-grid">
-        <div className="mcard">
-          <div className="mk"><Icon name="arrowDown" /> Input tokens</div>
-          <div className="mv">{METRICS.inputTokens}</div>
-        </div>
-        <div className="mcard">
-          <div className="mk"><Icon name="arrowRight" /> Output tokens</div>
-          <div className="mv">{METRICS.outputTokens}</div>
-        </div>
-        <div className="mcard">
-          <div className="mk"><Icon name="dollar" /> Est. cost</div>
-          <div className="mv accent">{METRICS.cost}</div>
-          <div className="msub up">updating live</div>
-        </div>
-        <div className="mcard">
-          <div className="mk"><Icon name="gauge" /> Avg LLM latency</div>
-          <div className="mv">{METRICS.avgLatency}<small> ms</small></div>
-        </div>
-      </div>
-      <div className="metric-section-t">Tool Calls</div>
-      <div className="bar-list">
-        {METRICS.toolCalls.map((t, i) => (
-          <div className="bar-item" key={i}>
-            <div className="bar-top">
-              <span className="nm"><Icon name={t.icon} /> {t.name}</span>
-              <span className="ct">{t.count}</span>
-            </div>
-            <div className="bar-track">
-              <div className={'bar-fill ' + t.color} style={{ width: t.pct + '%' }} />
-            </div>
-          </div>
-        ))}
-      </div>
-      <div className="metric-section-t">Time by Phase</div>
-      <div className="phase-bar">
-        {METRICS.phases.map((p, i) => (
-          <div key={i} className={'phase-seg ' + p.key} style={{ width: p.pct + '%' }}>
-            {p.pct + '%'}
-          </div>
-        ))}
-      </div>
-      <div className="phase-legend">
-        {METRICS.phases.map((p, i) => (
-          <span key={i}>
-            <span className="sw" style={{ background: p.key === 'loc' ? 'var(--accent)' : p.key === 'patch' ? 'var(--violet)' : 'var(--green)' }} />
-            {p.name} · <span className="mono" style={{ color: 'var(--text-3)' }}>{p.time}</span>
-          </span>
-        ))}
-      </div>
+    <div className="empty-state">
+      <Icon name="gauge" size={32} />
+      <p>No metrics yet</p>
     </div>
   );
 }
@@ -336,9 +165,9 @@ function MetricsTab() {
 export function RightPanel() {
   const [tab, setTab] = useState('files');
   const tabs = [
-    { id: 'files', label: 'Files', icon: 'folderTree', count: '4' },
-    { id: 'artifacts', label: 'Artifacts', icon: 'package', count: '3' },
-    { id: 'mcts', label: 'MCTS Tree', icon: 'sitemap', count: '7' },
+    { id: 'files', label: 'Files', icon: 'folderTree', count: null },
+    { id: 'artifacts', label: 'Artifacts', icon: 'package', count: null },
+    { id: 'mcts', label: 'MCTS Tree', icon: 'sitemap', count: null },
     { id: 'metrics', label: 'Metrics', icon: 'gauge', count: null },
   ];
   return (
