@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Icon } from './icons.jsx';
 
 /* ---------- HEADER ---------- */
-export function Header() {
+export function Header({ selectedId, onCancel }) {
   return (
     <header className="header">
       <div className="brand">
@@ -11,17 +11,29 @@ export function Header() {
           AZKA<span className="dot">.</span><span className="ai">AI</span>
         </div>
       </div>
+      {selectedId && onCancel ? (
+        <button className="stop-btn" onClick={() => onCancel(selectedId)} title="Stop current task">
+          <Icon name="x" /> Stop Task
+        </button>
+      ) : null}
       <button className="icon-btn" title="Settings"><Icon name="settings" /></button>
     </header>
   );
 }
 
 /* ---------- LEFT PANEL ---------- */
-function TaskRow({ task, selected, onSelect }) {
+function TaskRow({ task, selected, onSelect, onCancel }) {
   // Handle both string IDs and object tasks
   const taskId = typeof task === 'string' ? task : task.task_id || task.id;
-  const taskDesc = typeof task === 'string' ? `Task ${taskId}` : task.description || task.desc;
-  const taskStatus = typeof task === 'string' ? 'active' : task.status;
+  const taskDesc = typeof task === 'string' ? `Task ${taskId}` : task.description || task.desc || `Task ${taskId}`;
+  const taskStatus = typeof task === 'string' ? 'active' : task.status || 'active';
+  
+  async function handleCancel(e) {
+    e.stopPropagation();
+    if (onCancel && window.confirm('Stop this task? The agent will finish its current action then stop.')) {
+      await onCancel(taskId);
+    }
+  }
   
   return (
     <button
@@ -33,6 +45,11 @@ function TaskRow({ task, selected, onSelect }) {
           <span className="bdot" /> {taskStatus}
         </span>
         <span className="spacer" />
+        {taskStatus === 'active' && onCancel ? (
+          <button className="cancel-btn" onClick={handleCancel} title="Stop task">
+            <Icon name="x" />
+          </button>
+        ) : null}
       </div>
       <div className="desc">{taskDesc}</div>
       <div className="task-row-meta">
@@ -42,7 +59,7 @@ function TaskRow({ task, selected, onSelect }) {
   );
 }
 
-export function LeftPanel({ tasks, selectedId, onSelect, onStartTask }) {
+export function LeftPanel({ tasks, selectedId, onSelect, onStartTask, onCancel }) {
   const [taskInput, setTaskInput] = useState('');
   
   async function handleSubmit() {
@@ -90,6 +107,7 @@ export function LeftPanel({ tasks, selectedId, onSelect, onStartTask }) {
               task={t}
               selected={(t.task_id || t.id) === selectedId}
               onSelect={() => onSelect(t.task_id || t.id)}
+              onCancel={onCancel}
             />
           ))
         )}

@@ -44,8 +44,23 @@ export async function getTask(taskId) {
   return response.json();
 }
 
+export async function getTaskEvents(taskId) {
+  const response = await fetch(`${API_BASE}/tasks/${taskId}/events`);
+  return response.json();
+}
+
 export async function getTaskMetrics(taskId) {
   const response = await fetch(`${API_BASE}/tasks/${taskId}/metrics`);
+  return response.json();
+}
+
+export async function cancelTask(taskId) {
+  const response = await fetch(`${API_BASE}/tasks/${taskId}/cancel`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
   return response.json();
 }
 

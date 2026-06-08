@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Icon } from './icons.jsx';
 import { EventCard } from './cards.jsx';
 import { Header, LeftPanel, RightPanel, Footer } from './panels.jsx';
-import { startTask, getTasks, connectWebSocket } from '../api/client.js';
+import { startTask, getTasks, connectWebSocket, cancelTask, getTaskEvents } from '../api/client.js';
 import { mapBackendEventToUI } from '../api/eventMapper.js';
 
 function CenterFeed({ events, onOpenArtifact }) {
@@ -132,7 +132,7 @@ export default function App() {
     }
   }
 
-  function handleSelectTask(taskId) {
+  async function handleSelectTask(taskId) {
     setSelectedId(taskId);
     // Clear events when switching tasks
     setEvents([]);
@@ -145,7 +145,22 @@ export default function App() {
       setWsConnection(null);
     }
     
-    // Connect to new task's WebSocket
+    // Load existing events for this task
+    try {
+      const eventData = await getTaskEvents(taskId);
+      console.log('Loaded existing events for task:', taskId, eventData);
+      
+      if (eventData.events && Array.isArray(eventData.events)) {
+        const uiEvents = eventData.events.map(ev => mapBackendEventToUI(ev));
+        setEvents(uiEvents);
+        setTurnCount(uiEvents.length);
+        setTotalCost(uiEvents.length * 0.01);
+      }
+    } catch (e) {
+      console.log('No existing events for task (expected for new tasks):', taskId);
+    }
+    
+    // Connect to new task's WebSocket for live updates
     const ws = connectWebSocket(taskId, (data) => {
       const uiEvent = mapBackendEventToUI(data);
       setEvents(prev => [...prev, uiEvent]);
@@ -161,10 +176,20 @@ export default function App() {
     // TODO: Implement artifact viewer
   }
 
+  async function handleCancelTask(taskId) {
+    try {
+      await cancelTask(taskId);
+      console.log('Task cancelled:', taskId);
+    } catch (e) {
+      console.error('Failed to cancel task:', e);
+      alert('Failed to cancel task: ' + e.message);
+    }
+  }
+
   return (
     <div className="app">
-      <Header />
-      <LeftPanel tasks={tasks} selectedId={selectedId} onSelect={handleSelectTask} onStartTask={handleStartTask} />
+      <Header selectedId={selectedId} onCancel={handleCancelTask} />
+      <LeftPanel tasks={tasks} selectedId={selectedId} onSelect={handleSelectTask} onStartTask={handleStartTask} onCancel={handleCancelTask} />
       <CenterFeed events={events} onOpenArtifact={handleOpenArtifact} />
       <RightPanel />
       <Footer turnCount={turnCount} totalCost={totalCost} />
