@@ -46,9 +46,12 @@ export function LeftPanel({ tasks, selectedId, onSelect, onStartTask }) {
   const [taskInput, setTaskInput] = useState('');
   
   async function handleSubmit() {
+    console.log('Submit clicked, taskInput:', taskInput);
     if (taskInput.trim()) {
       await onStartTask(taskInput);
       setTaskInput('');
+    } else {
+      console.error('Task input is empty');
     }
   }
   

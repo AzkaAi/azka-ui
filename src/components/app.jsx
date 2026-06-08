@@ -64,9 +64,11 @@ export default function App() {
   const [turnCount, setTurnCount] = useState(0);
   const [totalCost, setTotalCost] = useState(0);
 
-  // Load tasks on mount
+  // Load tasks on mount and poll every 5 seconds
   useEffect(() => {
     loadTasks();
+    const interval = setInterval(loadTasks, 5000);
+    return () => clearInterval(interval);
   }, []);
 
   async function loadTasks() {
@@ -83,23 +85,28 @@ export default function App() {
 
   async function handleStartTask(taskDescription) {
     try {
+      console.log('Starting task with description:', taskDescription);
       const result = await startTask(taskDescription);
       console.log('Task started:', result);
+      
+      // Use the task_id from response
+      const taskId = result.task_id;
+      console.log('Using task_id:', taskId);
+      
       // Reload tasks to get the new task
       await loadTasks();
-      setSelectedId(result.subtask_id || result.task_id);
+      setSelectedId(taskId);
       
       // Clear previous events
       setEvents([]);
       setTurnCount(0);
       setTotalCost(0);
       
-      // Connect WebSocket for this task
+      // Connect WebSocket for this task immediately
       if (wsConnection) {
         wsConnection.close();
       }
       
-      const taskId = result.subtask_id || result.task_id;
       const ws = connectWebSocket(taskId, (data) => {
         console.log('WebSocket event:', data);
         const uiEvent = mapBackendEventToUI(data);

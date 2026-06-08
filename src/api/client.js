@@ -3,14 +3,14 @@ const API_BASE = 'https://api.azkaai.com';
 const WS_BASE = 'wss://api.azkaai.com';
 
 export async function startTask(taskDescription, taskId = null) {
-  const response = await fetch(`${API_BASE}/spawn-subtask`, {
+  const response = await fetch(`${API_BASE}/start-task`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
+      task_id: taskId,
       task_description: taskDescription,
-      parent_task_id: taskId || "root"
     }),
   });
   return response.json();
@@ -35,15 +35,17 @@ export function connectWebSocket(taskId, onMessage) {
   const ws = new WebSocket(`${WS_BASE}/ws/${taskId}`);
   
   ws.onopen = () => {
-    console.log('WebSocket connected');
+    console.log('WebSocket connected to:', `${WS_BASE}/ws/${taskId}`);
   };
   
   ws.onmessage = (event) => {
     try {
       const data = JSON.parse(event.data);
+      console.log('WebSocket received:', data);
       onMessage(data);
     } catch (e) {
       console.error('Failed to parse WebSocket message:', e);
+      console.error('Raw message:', event.data);
     }
   };
   
