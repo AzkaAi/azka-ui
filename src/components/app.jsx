@@ -89,8 +89,8 @@ export default function App() {
       const result = await startTask(taskDescription);
       console.log('Task started:', result);
       
-      // Use the task_id from response
-      const taskId = result.task_id;
+      // Use the subtask_id or task_id from response
+      const taskId = result.subtask_id || result.task_id;
       console.log('Using task_id:', taskId);
       
       // Reload tasks to get the new task
