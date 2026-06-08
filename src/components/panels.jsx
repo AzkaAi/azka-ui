@@ -19,8 +19,8 @@ export function Header() {
 /* ---------- LEFT PANEL ---------- */
 function TaskRow({ task, selected, onSelect }) {
   // Handle both string IDs and object tasks
-  const taskId = typeof task === 'string' ? task : task.id;
-  const taskDesc = typeof task === 'string' ? `Task ${taskId}` : task.desc;
+  const taskId = typeof task === 'string' ? task : task.task_id || task.id;
+  const taskDesc = typeof task === 'string' ? `Task ${taskId}` : task.description || task.desc;
   const taskStatus = typeof task === 'string' ? 'active' : task.status;
   
   return (
@@ -86,10 +86,10 @@ export function LeftPanel({ tasks, selectedId, onSelect, onStartTask }) {
         ) : (
           tasks.map(t => (
             <TaskRow
-              key={t.id}
+              key={t.task_id || t.id}
               task={t}
-              selected={t.id === selectedId}
-              onSelect={() => onSelect(t.id)}
+              selected={(t.task_id || t.id) === selectedId}
+              onSelect={() => onSelect(t.task_id || t.id)}
             />
           ))
         )}
