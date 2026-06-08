@@ -87,11 +87,19 @@ export default function App() {
     try {
       console.log('Starting task with description:', taskDescription);
       const result = await startTask(taskDescription);
-      console.log('Task started:', result);
+      console.log('Task started - full response:', JSON.stringify(result, null, 2));
+      console.log('Task started - task_id:', result.task_id);
+      console.log('Task started - status:', result.status);
       
       // Use the task_id from response
       const taskId = result.task_id;
       console.log('Using task_id:', taskId);
+      
+      if (!taskId) {
+        console.error('task_id is missing from response');
+        alert('Error: No task_id returned from server');
+        return;
+      }
       
       // Set selected task immediately
       setSelectedId(taskId);
