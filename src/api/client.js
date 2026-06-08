@@ -3,6 +3,9 @@ const API_BASE = 'https://api.azkaai.com';
 const WS_BASE = 'wss://api.azkaai.com';
 
 export async function startTask(taskDescription, taskId = null) {
+  console.log('Making request to:', `${API_BASE}/start-task`);
+  console.log('Request body:', JSON.stringify({ task_id: taskId, task_description: taskDescription }));
+  
   const response = await fetch(`${API_BASE}/start-task`, {
     method: 'POST',
     headers: {
@@ -14,14 +17,19 @@ export async function startTask(taskDescription, taskId = null) {
     }),
   });
   
+  console.log('Response status:', response.status);
+  console.log('Response ok:', response.ok);
+  
+  const responseText = await response.text();
+  console.log('Raw response text:', responseText);
+  
   if (!response.ok) {
-    const errorText = await response.text();
-    console.error('API error:', response.status, errorText);
-    throw new Error(`API error: ${response.status} - ${errorText}`);
+    console.error('API error:', response.status, responseText);
+    throw new Error(`API error: ${response.status} - ${responseText}`);
   }
   
-  const data = await response.json();
-  console.log('API response:', data);
+  const data = JSON.parse(responseText);
+  console.log('Parsed API response:', data);
   return data;
 }
 
