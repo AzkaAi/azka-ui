@@ -3,7 +3,17 @@ import { Icon } from './icons.jsx';
 import { TREE, FILE_VIEW, ARTIFACTS, METRICS, MCTS_TREE, FOOTER } from './data.jsx';
 
 /* ---------- HEADER ---------- */
-export function Header() {
+export function Header({ onStartTask }) {
+  const [taskInput, setTaskInput] = useState('');
+  
+  function handleSubmit(e) {
+    e.preventDefault();
+    if (taskInput.trim()) {
+      onStartTask(taskInput);
+      setTaskInput('');
+    }
+  }
+  
   return (
     <header className="header">
       <div className="brand">
@@ -15,21 +25,13 @@ export function Header() {
       <div className="header-sep" />
       <div className="header-task">
         <span className="label">Working on</span>
-        <span className="name">Fix JWT token refresh race condition under load</span>
-        <span className="tid">#1847</span>
+        <span className="name">AZKA.AI Autonomous Agent</span>
       </div>
       <div className="status-ind">
         <span className="bars">
           <i /><i /><i /><i />
         </span>
-        Running
-      </div>
-      <div className="sandbox-meter">
-        <Icon name="boxes" size={13} />
-        <span className="pips">
-          <i className="on" /><i className="on" /><i className="on" /><i />
-        </span>
-        <span className="mono"><b>3</b> / 4</span> sandboxes
+        Ready
       </div>
       <button className="icon-btn" title="Settings"><Icon name="settings" /></button>
     </header>
@@ -60,7 +62,18 @@ function TaskRow({ task, selected, onSelect }) {
   );
 }
 
-export function LeftPanel({ tasks, selectedId, onSelect }) {
+export function LeftPanel({ tasks, selectedId, onSelect, onStartTask }) {
+  const [taskInput, setTaskInput] = useState('');
+  const [repoInput, setRepoInput] = useState('');
+  
+  async function handleSubmit(e) {
+    e.preventDefault();
+    if (taskInput.trim()) {
+      await onStartTask(taskInput);
+      setTaskInput('');
+    }
+  }
+  
   return (
     <aside className="left">
       <div className="submit-form">
@@ -70,7 +83,9 @@ export function LeftPanel({ tasks, selectedId, onSelect }) {
           </div>
           <textarea
             className="task-input"
-            defaultValue="Fix JWT token refresh race condition causing intermittent 401s under load (#1847)"
+            value={taskInput}
+            onChange={(e) => setTaskInput(e.target.value)}
+            placeholder="View the file /home/root/azka-orchestrator/main.py and summarize what it does"
           />
         </div>
         <div className="field">
@@ -78,10 +93,15 @@ export function LeftPanel({ tasks, selectedId, onSelect }) {
             Repository<span className="opt">optional</span>
           </div>
           <div className="repo-input-wrap">
-            <input className="repo-input" defaultValue="github.com/acme-corp/payments-api" />
+            <input 
+              className="repo-input" 
+              value={repoInput}
+              onChange={(e) => setRepoInput(e.target.value)}
+              placeholder="github.com/org/repo"
+            />
           </div>
         </div>
-        <button className="submit-btn">
+        <button className="submit-btn" onClick={handleSubmit}>
           <Icon name="zap" /> Launch Agent
         </button>
         <div className="kbd-hint">
@@ -346,19 +366,14 @@ export function RightPanel() {
 }
 
 /* ---------- FOOTER ---------- */
-export function Footer() {
-  const [tokens, setTokens] = useState(FOOTER.tokens);
-  const [secs, setSecs] = useState(281);
-  const [turn, setTurn] = useState(FOOTER.turn);
+export function Footer({ turnCount, totalCost }) {
+  const [secs, setSecs] = useState(0);
   useEffect(() => {
     const id = setInterval(() => {
-      setTokens(t => t + Math.floor(Math.random() * 240 + 40));
       setSecs(s => s + 1);
-      if (Math.random() < 0.18) setTurn(t => t + 1);
     }, 1000);
     return () => clearInterval(id);
   }, []);
-  const cost = (tokens / 184920 * 0.47);
   const mm = String(Math.floor(secs / 60)).padStart(2, '0');
   const ss = String(secs % 60).padStart(2, '0');
   return (
@@ -366,35 +381,30 @@ export function Footer() {
       <div className="foot-item foot-model">
         <span className="md" />
         <span className="fk">Model</span>
-        <span className="fv">{FOOTER.model}</span>
+        <span className="fv">DeepSeek v4-flash</span>
       </div>
       <div className="foot-sep" />
       <div className="foot-item">
         <div className="foot-phase patch">
-          <span className="pd" /> Patch Engineering
+          <span className="pd" /> Localization
         </div>
       </div>
       <div className="foot-sep" />
       <div className="foot-item">
         <span className="fk">Turn</span>
-        <span className="fv tick">{turn}</span>
+        <span className="fv tick">{turnCount}</span>
       </div>
       <div className="foot-sep" />
       <div className="foot-item">
         <Icon name="boxes" />
         <span className="fk">Sandboxes</span>
-        <span className="fv">{FOOTER.sandboxes}</span>
+        <span className="fv">0</span>
       </div>
       <div className="foot-spacer" />
       <div className="foot-item">
         <Icon name="coins" />
-        <span className="fk">Tokens</span>
-        <span className="fv tick">{tokens.toLocaleString()}</span>
-      </div>
-      <div className="foot-sep" />
-      <div className="foot-item">
         <span className="fk">Cost</span>
-        <span className="fv tick">${cost.toFixed(2)}</span>
+        <span className="fv tick">${totalCost.toFixed(2)}</span>
       </div>
       <div className="foot-sep" />
       <div className="foot-item">
