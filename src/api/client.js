@@ -3,14 +3,14 @@ const API_BASE = 'https://api.azkaai.com';
 const WS_BASE = 'wss://api.azkaai.com';
 
 export async function startTask(taskDescription, taskId = null) {
-  const response = await fetch(`${API_BASE}/spawn-subtask`, {
+  const response = await fetch(`${API_BASE}/start-task`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
+      task_id: taskId,
       task_description: taskDescription,
-      parent_task_id: taskId || "root"
     }),
   });
   return response.json();

@@ -89,12 +89,11 @@ export default function App() {
       const result = await startTask(taskDescription);
       console.log('Task started:', result);
       
-      // Use the subtask_id or task_id from response
-      const taskId = result.subtask_id || result.task_id;
+      // Use the task_id from response
+      const taskId = result.task_id;
       console.log('Using task_id:', taskId);
       
-      // Reload tasks to get the new task
-      await loadTasks();
+      // Set selected task immediately
       setSelectedId(taskId);
       
       // Clear previous events
@@ -116,6 +115,9 @@ export default function App() {
       });
       
       setWsConnection(ws);
+      
+      // Reload tasks in background to update history
+      loadTasks();
     } catch (e) {
       console.error('Failed to start task:', e);
       alert('Failed to start task: ' + e.message);
