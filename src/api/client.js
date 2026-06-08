@@ -1,6 +1,6 @@
 // API client for AZKA.AI orchestrator backend
-const API_BASE = 'http://69.87.222.147';
-const WS_BASE = 'ws://69.87.222.147';
+const API_BASE = 'https://api.azkaai.com';
+const WS_BASE = 'wss://api.azkaai.com';
 
 export async function startTask(taskDescription, taskId = null) {
   const response = await fetch(`${API_BASE}/spawn-subtask`, {
