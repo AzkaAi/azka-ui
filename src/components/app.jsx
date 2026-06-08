@@ -91,8 +91,8 @@ export default function App() {
       console.log('Task started - task_id:', result.task_id);
       console.log('Task started - status:', result.status);
       
-      // Use the task_id from response
-      const taskId = result.task_id;
+      // Use the subtask_id from response
+      const taskId = result.subtask_id || result.task_id;
       console.log('Using task_id:', taskId);
       
       if (!taskId) {
