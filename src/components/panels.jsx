@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Icon } from './icons.jsx';
+import { useMonacoEditor, animateFileCreation, animateFileEdit, animateFileView } from '../hooks/useMonacoEditor.js';
 
 /* ---------- HEADER ---------- */
 export function Header({ selectedId, onCancel }) {
@@ -27,25 +28,28 @@ function TaskRow({ task, selected, onSelect, onCancel, onTaskUpdate }) {
   const taskId = typeof task === 'string' ? task : task.task_id || task.id;
   const taskDesc = typeof task === 'string' ? `Task ${taskId}` : (task.description || task.desc || 'Untitled Task');
   const taskStatus = typeof task === 'string' ? 'active' : task.status || 'active';
+  const [isCancelling, setIsCancelling] = useState(false);
   
   async function handleCancel(e) {
     e.stopPropagation();
     if (onCancel && window.confirm('Stop this task? The agent will finish its current action then stop.')) {
+      setIsCancelling(true);
       await onCancel(taskId);
       // Immediately update task status in UI
       if (onTaskUpdate) {
         onTaskUpdate(taskId, 'CANCELLED');
       }
+      setIsCancelling(false);
     }
   }
   
   return (
     <button
-      className={'task-row' + (selected ? ' sel' : '')}
+      className={`task-row ${selected ? ' sel' : ''} ${isCancelling ? 'cancelling' : ''} ${taskStatus === 'completed' ? 'completed-flash' : ''}`}
       onClick={onSelect}
     >
       <div className="task-row-top">
-        <span className={'badge ' + taskStatus}>
+        <span className={`badge ${taskStatus} ${taskStatus === 'active' ? 'active-badge' : ''}`}>
           <span className="bdot" /> {taskStatus}
         </span>
         <span className="spacer" />
@@ -127,6 +131,10 @@ function FilesTab({ artifacts }) {
   const [tree, setTree] = useState([]);
   const [fileContent, setFileContent] = useState('');
   const [language, setLanguage] = useState('');
+  const [isNewFile, setIsNewFile] = useState(false);
+  const containerRef = useRef(null);
+  
+  const monacoEditor = useMonacoEditor(containerRef);
 
   useEffect(() => {
     if (!artifacts || artifacts.length === 0) return;
@@ -152,7 +160,8 @@ function FilesTab({ artifacts }) {
             parent: currentPath || null,
             children: [],
             content: artifact.content,
-            language: artifact.language
+            language: artifact.language,
+            isNew: true // Mark as new for animation
           });
         }
         
@@ -184,14 +193,28 @@ function FilesTab({ artifacts }) {
       setSelectedFile(firstFile.path);
       setFileContent(firstFile.content);
       setLanguage(firstFile.language);
+      setIsNewFile(true);
+      
+      // Animate file creation if Monaco is ready
+      if (monacoEditor.isReady) {
+        animateFileCreation(monacoEditor, firstFile.path, firstFile.content, firstFile.language);
+      }
     }
-  }, [artifacts]);
+  }, [artifacts, monacoEditor.isReady]);
 
   const handleFileClick = (item) => {
     if (item.isFile) {
       setSelectedFile(item.path);
       setFileContent(item.content);
       setLanguage(item.language);
+      setIsNewFile(false);
+      
+      // Animate file view if Monaco is ready
+      if (monacoEditor.isReady) {
+        monacoEditor.setValue(item.content);
+        monacoEditor.setLanguage(item.language);
+        animateFileView(monacoEditor);
+      }
     }
   };
 
@@ -210,7 +233,7 @@ function FilesTab({ artifacts }) {
       .map(item => (
         <div key={item.path}>
           <div
-            className="tree-row"
+            className={`tree-row ${item.isNew ? 'new-file' : ''}`}
             onClick={() => handleFileClick(item)}
             style={{
               paddingLeft: (7 + (item.path.split('/').length - 1) * 15) + 'px',
@@ -218,7 +241,12 @@ function FilesTab({ artifacts }) {
             }}
           >
             <span className="tw">
-              {!item.isFile ? <Icon name={item.children.length > 0 ? 'chevD' : 'chevR'} /> : null}
+              {!item.isFile ? (
+                <Icon 
+                  name={item.children.length > 0 ? 'chevD' : 'chevR'} 
+                  className={`folder-icon ${selectedFile === item.path ? 'open' : ''}`}
+                />
+              ) : null}
             </span>
             <span className="fi">
               <Icon name={item.isFile ? 'fileCode' : 'folder'} />
@@ -284,9 +312,15 @@ function FilesTab({ artifacts }) {
                 />
               </div>
             ) : (
-              <pre className="codeblock code-content">
-                <code className={`language-${language || 'plaintext'}`}>{fileContent}</code>
-              </pre>
+              <div 
+                ref={containerRef}
+                style={{ 
+                  width: '100%', 
+                  height: '100%', 
+                  minHeight: '400px',
+                  border: '1px solid var(--border)'
+                }}
+              />
             )
           ) : (
             <div className="empty-state" style={{ height: '100%' }}>
@@ -362,14 +396,39 @@ export function RightPanel({ artifacts }) {
 /* ---------- FOOTER ---------- */
 export function Footer({ turnCount, totalCost, activeSandboxes }) {
   const [secs, setSecs] = useState(0);
+  const [displayedTurn, setDisplayedTurn] = useState(turnCount);
+  const [displayedCost, setDisplayedCost] = useState(totalCost);
+  const [displayedSandboxes, setDisplayedSandboxes] = useState(activeSandboxes);
+  
   useEffect(() => {
     const id = setInterval(() => {
       setSecs(s => s + 1);
     }, 1000);
     return () => clearInterval(id);
   }, []);
+  
+  // Animate counter updates
+  useEffect(() => {
+    if (turnCount !== displayedTurn) {
+      setDisplayedTurn(turnCount);
+    }
+  }, [turnCount, displayedTurn]);
+  
+  useEffect(() => {
+    if (totalCost !== displayedCost) {
+      setDisplayedCost(totalCost);
+    }
+  }, [totalCost, displayedCost]);
+  
+  useEffect(() => {
+    if (activeSandboxes !== displayedSandboxes) {
+      setDisplayedSandboxes(activeSandboxes);
+    }
+  }, [activeSandboxes, displayedSandboxes]);
+  
   const mm = String(Math.floor(secs / 60)).padStart(2, '0');
   const ss = String(secs % 60).padStart(2, '0');
+  
   return (
     <footer className="footer">
       <div className="foot-item foot-model">
@@ -386,19 +445,19 @@ export function Footer({ turnCount, totalCost, activeSandboxes }) {
       <div className="foot-sep" />
       <div className="foot-item">
         <span className="fk">Turn</span>
-        <span className="fv tick">{turnCount}</span>
+        <span className={`fv tick ${turnCount !== displayedTurn ? 'counter-updating' : ''} ${turnCount !== displayedTurn ? 'counter-updated' : ''}`}>{displayedTurn}</span>
       </div>
       <div className="foot-sep" />
       <div className="foot-item">
         <Icon name="boxes" />
         <span className="fk">Sandboxes</span>
-        <span className="fv">{activeSandboxes || '0 / 4'}</span>
+        <span className={`fv ${activeSandboxes !== displayedSandboxes ? 'counter-updating' : ''} ${activeSandboxes !== displayedSandboxes ? 'counter-updated' : ''}`}>{displayedSandboxes || '0 / 4'}</span>
       </div>
       <div className="foot-spacer" />
       <div className="foot-item">
         <Icon name="coins" />
         <span className="fk">Cost</span>
-        <span className="fv tick">${totalCost.toFixed(2)}</span>
+        <span className={`fv tick ${totalCost !== displayedCost ? 'counter-updating' : ''} ${totalCost !== displayedCost ? 'counter-updated' : ''}`}>${displayedCost.toFixed(2)}</span>
       </div>
       <div className="foot-sep" />
       <div className="foot-item">

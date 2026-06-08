@@ -6,7 +6,7 @@ function Shell({ hueClass, icoClass, icon, type, title, meta, defaultOpen, colla
   const [open, setOpen] = useState(!!defaultOpen);
   const isOpen = collapsible ? open : true;
   return (
-    <div className={'card ' + hueClass + (isOpen ? ' open' : '')}>
+    <div className={'card event-card ' + hueClass + (isOpen ? ' open' : '')}>
       <button
         className="card-head"
         onClick={() => collapsible && setOpen(o => !o)}
@@ -379,9 +379,9 @@ function MctsCard({ ev }) {
 function TaskCompleteCard({ ev }) {
   const summary = ev.observation?.stdout || ev.summary || 'Task completed successfully';
   return (
-    <div className="card task-complete" style={{ backgroundColor: '#1a3a1a', border: '1px solid #2a5a2a' }}>
+    <div className="card task-complete-card event-card" style={{ backgroundColor: '#1a3a1a', border: '1px solid #2a5a2a' }}>
       <div className="task-complete-top">
-        <div className="task-complete-badge" style={{ backgroundColor: '#2a5a2a', color: '#ffffff' }}>
+        <div className="task-complete-badge complete-checkmark" style={{ backgroundColor: '#2a5a2a', color: '#ffffff' }}>
           <Icon name="check" />
         </div>
         <div>

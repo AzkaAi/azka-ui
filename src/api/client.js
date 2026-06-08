@@ -128,8 +128,24 @@ export class TaskSession {
 
   processEvent(data, renderCallback) {
     if (data.seq_id <= this.highestSeqId) return;
+    
+    // Buffer if out of order
+    if (data.seq_id > this.highestSeqId + 1) {
+      this.bufferedEvents.push(data);
+      this.bufferedEvents.sort((a, b) => a.seq_id - b.seq_id);
+      return;
+    }
+    
     this.highestSeqId = data.seq_id;
     renderCallback(data);
+    
+    // Check buffer for next events
+    while (this.bufferedEvents.length > 0 && 
+           this.bufferedEvents[0].seq_id === this.highestSeqId + 1) {
+      const next = this.bufferedEvents.shift();
+      this.highestSeqId = next.seq_id;
+      renderCallback(next);
+    }
   }
 
   async loadHistory(renderCallback) {

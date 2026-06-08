@@ -6,6 +6,7 @@ import { EventPair } from './eventPair.jsx';
 import { startTask, getTasks, connectWebSocket, cancelTask, getTaskEvents, switchToTask } from '../api/client.js';
 import { mapBackendEventToUI } from '../api/eventMapper.js';
 import { pairEvents } from '../utils/eventPairing.js';
+import { useFaviconStatus } from '../hooks/useFaviconStatus.js';
 
 function CenterFeed({ events, insights, onOpenArtifact, isLive = false }) {
   const feedRef = useRef(null);
@@ -89,6 +90,10 @@ export default function App() {
   const [insights, setInsights] = useState(null);
   const [activeSandboxes, setActiveSandboxes] = useState('0 / 4');
   const [isLive, setIsLive] = useState(false);
+  const [taskStatus, setTaskStatus] = useState('idle'); // idle, active, complete, error
+  
+  // Update favicon based on task status
+  useFaviconStatus(taskStatus);
 
   // Load tasks on mount and poll every 5 seconds
   useEffect(() => {
@@ -135,6 +140,7 @@ export default function App() {
       setTurnCount(0);
       setTotalCost(0);
       setIsLive(true);
+      setTaskStatus('active');
       
       // Connect WebSocket for this task immediately
       if (wsConnection) {
@@ -156,6 +162,7 @@ export default function App() {
         // Handle task_complete event to extract artifacts
         if (data.event_type === 'task_complete' && data.artifacts) {
           setArtifacts(data.artifacts);
+          setTaskStatus('complete');
         }
       });
       
@@ -178,6 +185,7 @@ export default function App() {
     setArtifacts(null);
     setInsights(null);
     setIsLive(false); // Loading from history, not live
+    setTaskStatus('idle');
     
     // Close existing WebSocket
     if (wsConnection) {
@@ -194,6 +202,9 @@ export default function App() {
       if (taskData.artifacts) {
         setArtifacts(taskData.artifacts);
       }
+      // Set status based on task completion
+      const hasCompleteEvent = taskData.events?.some(e => e.event_type === 'task_complete');
+      setTaskStatus(hasCompleteEvent ? 'complete' : 'idle');
     } catch (e) {
       console.log('No task details available:', taskId);
     }
@@ -213,6 +224,7 @@ export default function App() {
       // Handle task_complete event to extract artifacts
       if (data.event_type === 'task_complete' && data.artifacts) {
         setArtifacts(data.artifacts);
+        setTaskStatus('complete');
       }
     });
   }
