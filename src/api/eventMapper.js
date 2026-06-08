@@ -7,19 +7,19 @@ export function mapBackendEventToUI(backendEvent) {
   const action = backendEvent.action || backendEvent;
   const observation = backendEvent.observation || backendEvent;
   
-  // Extract thought from action if available
+  // Extract thought from action if available (for pairing logic)
   const thought = action?.thought || action?.tool_args?.thought || '';
   
-  // For tool_call events, create both thinking and tool event
-  if (event_type === 'tool_call' && thought) {
+  // For tool_call events, map to appropriate card type and preserve thought
+  if (event_type === 'tool_call') {
     const toolName = action?.tool_name || 'unknown';
-    let toolEventType = 'run';
-    let toolEventData = {};
     
     // Map tool names to event types and extract relevant data
     if (toolName === 'edit_file' || toolName === 'edit') {
-      toolEventType = 'edit';
-      toolEventData = {
+      return {
+        type: 'edit',
+        open: true,
+        thought: thought, // Preserve thought for pairing
         path: action?.tool_args?.filepath || action?.filepath,
         result: observation?.success ? 'ok' : 'error',
         added: 0,
@@ -30,8 +30,10 @@ export function mapBackendEventToUI(backendEvent) {
         ] : [],
       };
     } else if (toolName === 'view_file' || toolName === 'view') {
-      toolEventType = 'view';
-      toolEventData = {
+      return {
+        type: 'view',
+        open: true,
+        thought: thought, // Preserve thought for pairing
         path: action?.tool_args?.file_path || action?.file_path,
         lang: 'py',
         lines: '1-100',
@@ -40,15 +42,20 @@ export function mapBackendEventToUI(backendEvent) {
         ] : [],
       };
     } else if (toolName === 'search') {
-      toolEventType = 'search';
-      toolEventData = {
+      return {
+        type: 'search',
+        open: true,
+        thought: thought, // Preserve thought for pairing
         query: action?.tool_args?.query || 'search',
         scope: action?.tool_args?.path || '.',
         results: observation?.results || [],
       };
     } else {
       // Default to run command
-      toolEventData = {
+      return {
+        type: 'run',
+        open: true,
+        thought: thought, // Preserve thought for pairing
         cmd: action?.tool_args?.command?.join(' ') || action?.command,
         exit: observation?.exit_code || (observation?.success ? 0 : 1),
         duration: '1.0s',
@@ -58,26 +65,14 @@ export function mapBackendEventToUI(backendEvent) {
         ],
       };
     }
-    
-    return {
-      type: 'tool_call_with_thought',
-      open: true,
-      thought: thought,
-      tool_name: toolName,
-      tool_args: action?.tool_args || {},
-      observation: observation || {},
-      event_type: event_type,
-      tool_event_type: toolEventType,
-      ...toolEventData
-    };
   }
   
-  // Create thinking event if thought exists and it's not already a thinking event
-  if (thought && event_type !== 'thinking' && event_type !== 'cancelled' && event_type !== 'tool_call') {
+  // For thinking events, preserve the thought text for pairing
+  if (event_type === 'thinking') {
     return {
       type: 'thinking',
       open: true,
-      text: thought,
+      text: action?.thought || action?.text || '',
     };
   }
   

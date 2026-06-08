@@ -43,20 +43,7 @@ function ThinkingCard({ ev }) {
   );
 }
 
-// 1.5 · Thinking Bubble (for tool_call events) ---------------
-function ThinkingBubble({ thought }) {
-  if (!thought) return null;
-  return (
-    <div className="card thinking-bubble">
-      <div className="card-body">
-        <span className="card-ico ico-violet"><Icon name="brain" /></span>
-        <p className="think-text">{thought}</p>
-      </div>
-    </div>
-  );
-}
-
-// 1.6 · Session Insights Card ---------------------------------
+// 1.5 · Session Insights Card ---------------------------------
 export function SessionInsightsCard({ insights }) {
   if (!insights) return null;
   return (
@@ -443,29 +430,6 @@ function FinishCard({ ev }) {
 
 // Dispatcher -------------------------------------------------
 export function EventCard({ ev, onOpenArtifact }) {
-  // Handle tool_call_with_thought - render thinking bubble + tool card
-  if (ev.type === 'tool_call_with_thought') {
-    const toolEvent = {
-      ...ev,
-      type: ev.tool_event_type || 'run'
-    };
-    
-    let ToolCard;
-    switch (toolEvent.type) {
-      case 'edit': ToolCard = EditCard; break;
-      case 'view': ToolCard = ViewCard; break;
-      case 'search': ToolCard = SearchCard; break;
-      default: ToolCard = RunCard;
-    }
-    
-    return (
-      <>
-        <ThinkingBubble thought={ev.thought} />
-        <ToolCard ev={toolEvent} />
-      </>
-    );
-  }
-  
   switch (ev.type) {
     case 'thinking':   return <ThinkingCard ev={ev} />;
     case 'view':       return <ViewCard ev={ev} />;
@@ -478,7 +442,6 @@ export function EventCard({ ev, onOpenArtifact }) {
     case 'interrupt':  return <InterruptCard ev={ev} />;
     case 'human':      return <HumanCard ev={ev} />;
     case 'mcts':       return <MctsCard ev={ev} />;
-    case 'task_complete': return <TaskCompleteCard ev={ev} />;
     case 'task_complete': return <TaskCompleteCard ev={ev} />;
     case 'finish':     return <FinishCard ev={ev} />;
     default: return null;

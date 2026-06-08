@@ -1,13 +1,21 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Icon } from './icons.jsx';
-import { EventCard, SessionInsightsCard } from './cards.jsx';
+import { SessionInsightsCard } from './cards.jsx';
 import { Header, LeftPanel, RightPanel, Footer } from './panels.jsx';
+import { EventPair } from './eventPair.jsx';
 import { startTask, getTasks, connectWebSocket, cancelTask, getTaskEvents, switchToTask } from '../api/client.js';
 import { mapBackendEventToUI } from '../api/eventMapper.js';
+import { pairEvents } from '../utils/eventPairing.js';
 
-function CenterFeed({ events, insights, onOpenArtifact }) {
+function CenterFeed({ events, insights, onOpenArtifact, isLive = false }) {
   const feedRef = useRef(null);
   const [showUnread, setShowUnread] = useState(false);
+  const bottomRef = useRef(null);
+
+  // Auto-scroll to bottom when new events arrive
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [events.length]);
 
   // demonstrate the unread pill: show it when the user scrolls up from bottom
   function onScroll() {
@@ -20,6 +28,9 @@ function CenterFeed({ events, insights, onOpenArtifact }) {
     const el = feedRef.current;
     if (el) el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
   }
+
+  // Pair events for thought+action rendering
+  const pairs = pairEvents(events, isLive);
 
   return (
     <main className="center">
@@ -37,14 +48,24 @@ function CenterFeed({ events, insights, onOpenArtifact }) {
       <div className="feed scroll" ref={feedRef} onScroll={onScroll}>
         <div className="feed-inner">
           <SessionInsightsCard insights={insights} />
-          {events.length === 0 ? (
+          {pairs.length === 0 ? (
             <div className="empty-state">
               <Icon name="activity" size={32} />
               <p>No events yet</p>
             </div>
           ) : (
-            events.map((ev, i) => <EventCard key={i} ev={ev} onOpenArtifact={onOpenArtifact} />)
+            pairs.map((pair, index) => (
+              <EventPair
+                key={index}
+                thought={pair.thought}
+                thoughtSeconds={pair.thoughtSeconds}
+                action={pair.action}
+                isLatest={index === pairs.length - 1}
+                isLive={isLive}
+              />
+            ))
           )}
+          <div ref={bottomRef} />
         </div>
       </div>
       {showUnread ? (
@@ -67,6 +88,7 @@ export default function App() {
   const [artifacts, setArtifacts] = useState(null);
   const [insights, setInsights] = useState(null);
   const [activeSandboxes, setActiveSandboxes] = useState('0 / 4');
+  const [isLive, setIsLive] = useState(false);
 
   // Load tasks on mount and poll every 5 seconds
   useEffect(() => {
@@ -112,6 +134,7 @@ export default function App() {
       setEvents([]);
       setTurnCount(0);
       setTotalCost(0);
+      setIsLive(true);
       
       // Connect WebSocket for this task immediately
       if (wsConnection) {
@@ -154,6 +177,7 @@ export default function App() {
     setTotalCost(0);
     setArtifacts(null);
     setInsights(null);
+    setIsLive(false); // Loading from history, not live
     
     // Close existing WebSocket
     if (wsConnection) {
@@ -222,7 +246,7 @@ export default function App() {
     <div className="app">
       <Header selectedId={selectedId} onCancel={handleCancelTask} />
       <LeftPanel tasks={tasks} selectedId={selectedId} onSelect={handleSelectTask} onStartTask={handleStartTask} onCancel={handleCancelTask} onTaskUpdate={handleTaskUpdate} />
-      <CenterFeed events={events} insights={insights} onOpenArtifact={handleOpenArtifact} />
+      <CenterFeed events={events} insights={insights} onOpenArtifact={handleOpenArtifact} isLive={isLive} />
       <RightPanel artifacts={artifacts} />
       <Footer turnCount={turnCount} totalCost={totalCost} activeSandboxes={activeSandboxes} />
     </div>

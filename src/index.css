@@ -600,6 +600,92 @@ input.repo-input { font-family: var(--mono); font-size: 12px; }
 .btn-secondary:hover { background: var(--surface-3); border-color: var(--text-4); }
 .btn-secondary svg { width: 14px; height: 14px; }
 
+/* ---- THINKING BUBBLE ---- */
+.thinking-bubble {
+  margin: 4px 0 2px 0;
+  border-radius: 8px;
+  font-size: 13px;
+  transition: all 0.3s ease;
+}
+
+.thinking-bubble.expanded {
+  background: rgba(139, 92, 246, 0.08);
+  border: 1px solid rgba(139, 92, 246, 0.2);
+  padding: 10px 14px;
+}
+
+.thinking-bubble.collapsed {
+  background: transparent;
+  border: none;
+  padding: 2px 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  color: #6b7280;
+  width: fit-content;
+}
+
+.thinking-bubble.collapsed:hover {
+  color: #9ca3af;
+}
+
+.thinking-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  color: #8b5cf6;
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.thinking-content {
+  color: #d1d5db;
+  line-height: 1.6;
+  font-size: 13px;
+}
+
+.thinking-icon {
+  font-size: 12px;
+}
+
+.thinking-summary {
+  font-size: 12px;
+  font-style: italic;
+}
+
+.toggle-arrow {
+  font-size: 10px;
+  transition: transform 0.2s;
+}
+
+.cursor {
+  display: inline-block;
+  animation: blink 0.7s infinite;
+  color: #8b5cf6;
+  margin-left: 1px;
+}
+
+@keyframes blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
+}
+
+.event-pair {
+  margin-bottom: 8px;
+}
+
+.typewriter.typing {
+  color: #c4b5fd;
+}
+
+.typewriter.done {
+  color: #d1d5db;
+}
+
 /* ---- SPECIAL CARDS ---- */
 
 /* system interrupt */
