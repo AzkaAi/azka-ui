@@ -2,17 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Icon } from './icons.jsx';
 
 /* ---------- HEADER ---------- */
-export function Header({ onStartTask }) {
-  const [taskInput, setTaskInput] = useState('');
-  
-  function handleSubmit(e) {
-    e.preventDefault();
-    if (taskInput.trim()) {
-      onStartTask(taskInput);
-      setTaskInput('');
-    }
-  }
-  
+export function Header() {
   return (
     <header className="header">
       <div className="brand">
@@ -21,17 +11,6 @@ export function Header({ onStartTask }) {
           AZKA<span className="dot">.</span><span className="ai">AI</span>
         </div>
       </div>
-      <div className="header-sep" />
-      <div className="header-task">
-        <span className="label">Working on</span>
-        <span className="name">AZKA.AI Autonomous Agent</span>
-      </div>
-      <div className="status-ind">
-        <span className="bars">
-          <i /><i /><i /><i />
-        </span>
-        Ready
-      </div>
       <button className="icon-btn" title="Settings"><Icon name="settings" /></button>
     </header>
   );
@@ -39,23 +18,25 @@ export function Header({ onStartTask }) {
 
 /* ---------- LEFT PANEL ---------- */
 function TaskRow({ task, selected, onSelect }) {
-  const stateLabel = { active: 'Active', completed: 'Completed', failed: 'Failed', awaiting: 'Awaiting Human' };
+  // Handle both string IDs and object tasks
+  const taskId = typeof task === 'string' ? task : task.id;
+  const taskDesc = typeof task === 'string' ? `Task ${taskId}` : task.desc;
+  const taskStatus = typeof task === 'string' ? 'active' : task.status;
+  
   return (
     <button
       className={'task-row' + (selected ? ' sel' : '')}
       onClick={onSelect}
     >
       <div className="task-row-top">
-        <span className={'badge ' + task.status}>
-          <span className="bdot" /> {stateLabel[task.status]}
+        <span className={'badge ' + taskStatus}>
+          <span className="bdot" /> {taskStatus}
         </span>
         <span className="spacer" />
       </div>
-      <div className="desc">{task.desc}</div>
+      <div className="desc">{taskDesc}</div>
       <div className="task-row-meta">
-        <span className="tid">{task.id}</span>
-        <span className="dot-sep" />
-        <span className="elapsed"><Icon name="clock" /> {task.elapsed}</span>
+        <span className="tid">{taskId}</span>
       </div>
     </button>
   );
@@ -63,10 +44,8 @@ function TaskRow({ task, selected, onSelect }) {
 
 export function LeftPanel({ tasks, selectedId, onSelect, onStartTask }) {
   const [taskInput, setTaskInput] = useState('');
-  const [repoInput, setRepoInput] = useState('');
   
-  async function handleSubmit(e) {
-    e.preventDefault();
+  async function handleSubmit() {
     if (taskInput.trim()) {
       await onStartTask(taskInput);
       setTaskInput('');
@@ -84,42 +63,33 @@ export function LeftPanel({ tasks, selectedId, onSelect, onStartTask }) {
             className="task-input"
             value={taskInput}
             onChange={(e) => setTaskInput(e.target.value)}
-            placeholder="View the file /home/root/azka-orchestrator/main.py and summarize what it does"
+            placeholder="Describe your task..."
           />
-        </div>
-        <div className="field">
-          <div className="field-label">
-            Repository<span className="opt">optional</span>
-          </div>
-          <div className="repo-input-wrap">
-            <input 
-              className="repo-input" 
-              value={repoInput}
-              onChange={(e) => setRepoInput(e.target.value)}
-              placeholder="github.com/org/repo"
-            />
-          </div>
         </div>
         <button className="submit-btn" onClick={handleSubmit}>
           <Icon name="zap" /> Launch Agent
         </button>
-        <div className="kbd-hint">
-          Press <span className="kbd">⌘</span> <span className="kbd">↵</span> to submit
-        </div>
       </div>
       <div className="panel-head">
         <span className="t">History</span>
         <span className="count">{tasks.length}</span>
       </div>
       <div className="task-list scroll">
-        {tasks.map(t => (
-          <TaskRow
-            key={t.id}
-            task={t}
-            selected={t.id === selectedId}
-            onSelect={() => onSelect(t.id)}
-          />
-        ))}
+        {tasks.length === 0 ? (
+          <div className="empty-state">
+            <Icon name="clock" size={24} />
+            <p>No tasks yet</p>
+          </div>
+        ) : (
+          tasks.map(t => (
+            <TaskRow
+              key={t.id}
+              task={t}
+              selected={t.id === selectedId}
+              onSelect={() => onSelect(t.id)}
+            />
+          ))
+        )}
       </div>
     </aside>
   );

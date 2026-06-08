@@ -36,7 +36,14 @@ function CenterFeed({ events, onOpenArtifact }) {
       </div>
       <div className="feed scroll" ref={feedRef} onScroll={onScroll}>
         <div className="feed-inner">
-          {events.map((ev, i) => <EventCard key={i} ev={ev} onOpenArtifact={onOpenArtifact} />)}
+          {events.length === 0 ? (
+            <div className="empty-state">
+              <Icon name="activity" size={32} />
+              <p>No events yet</p>
+            </div>
+          ) : (
+            events.map((ev, i) => <EventCard key={i} ev={ev} onOpenArtifact={onOpenArtifact} />)
+          )}
         </div>
       </div>
       {showUnread ? (
@@ -65,47 +72,46 @@ export default function App() {
   async function loadTasks() {
     try {
       const data = await getTasks();
-      // Transform backend task IDs to UI task objects
-      const uiTasks = (data.tasks || []).map(taskId => ({
-        id: taskId,
-        desc: `Task ${taskId}`,
-        repo: 'azka-orchestrator',
-        status: 'active',
-        elapsed: '0m 0s',
-        selected: false,
-      }));
-      setTasks(uiTasks);
-      if (uiTasks.length > 0) {
-        setSelectedId(uiTasks[0].id);
-      }
+      console.log('Loaded tasks:', data);
+      // Use backend tasks directly or empty array
+      setTasks(data.tasks || []);
     } catch (e) {
       console.error('Failed to load tasks:', e);
+      setTasks([]);
     }
   }
 
   async function handleStartTask(taskDescription) {
     try {
       const result = await startTask(taskDescription);
+      console.log('Task started:', result);
       // Reload tasks to get the new task
       await loadTasks();
-      setSelectedId(result.task_id);
+      setSelectedId(result.subtask_id || result.task_id);
+      
+      // Clear previous events
+      setEvents([]);
+      setTurnCount(0);
+      setTotalCost(0);
       
       // Connect WebSocket for this task
       if (wsConnection) {
         wsConnection.close();
       }
       
-      const ws = connectWebSocket(result.task_id, (data) => {
+      const taskId = result.subtask_id || result.task_id;
+      const ws = connectWebSocket(taskId, (data) => {
+        console.log('WebSocket event:', data);
         const uiEvent = mapBackendEventToUI(data);
         setEvents(prev => [...prev, uiEvent]);
         setTurnCount(prev => prev + 1);
-        // Simple cost estimation (mock for now)
         setTotalCost(prev => prev + 0.01);
       });
       
       setWsConnection(ws);
     } catch (e) {
       console.error('Failed to start task:', e);
+      alert('Failed to start task: ' + e.message);
     }
   }
 
