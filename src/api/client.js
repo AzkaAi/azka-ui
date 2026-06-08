@@ -1,20 +1,20 @@
 // API client for AZKA.AI orchestrator backend
-// Version: 3.0 - force cache invalidation
+// Version: 4.0 - use start-task for live agent activity
 const API_BASE = 'https://api.azkaai.com';
 const WS_BASE = 'wss://api.azkaai.com';
 
 export async function startTask(taskDescription, taskId = null) {
-  console.log('Making request to:', `${API_BASE}/spawn-subtask`);
-  console.log('Request body:', JSON.stringify({ task_description: taskDescription, parent_task_id: taskId || "root" }));
+  console.log('Making request to:', `${API_BASE}/start-task`);
+  console.log('Request body:', JSON.stringify({ task_id: taskId, task_description: taskDescription }));
   
-  const response = await fetch(`${API_BASE}/spawn-subtask`, {
+  const response = await fetch(`${API_BASE}/start-task`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
+      task_id: taskId,
       task_description: taskDescription,
-      parent_task_id: taskId || "root"
     }),
   });
   
