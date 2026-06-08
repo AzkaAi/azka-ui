@@ -63,6 +63,7 @@ export default function App() {
   const [wsConnection, setWsConnection] = useState(null);
   const [turnCount, setTurnCount] = useState(0);
   const [totalCost, setTotalCost] = useState(0);
+  const [artifacts, setArtifacts] = useState(null);
 
   // Load tasks on mount and poll every 5 seconds
   useEffect(() => {
@@ -120,6 +121,11 @@ export default function App() {
         setEvents(prev => [...prev, uiEvent]);
         setTurnCount(prev => prev + 1);
         setTotalCost(prev => prev + 0.01);
+        
+        // Handle task_complete event to extract artifacts
+        if (data.event_type === 'task_complete' && data.artifacts) {
+          setArtifacts(data.artifacts);
+        }
       });
       
       setWsConnection(ws);
@@ -138,6 +144,7 @@ export default function App() {
     setEvents([]);
     setTurnCount(0);
     setTotalCost(0);
+    setArtifacts(null);
     
     // Close existing WebSocket
     if (wsConnection) {
@@ -155,6 +162,12 @@ export default function App() {
         setEvents(uiEvents);
         setTurnCount(uiEvents.length);
         setTotalCost(uiEvents.length * 0.01);
+        
+        // Check for task_complete event and extract artifacts
+        const completeEvent = eventData.events.find(ev => ev.event_type === 'task_complete');
+        if (completeEvent && completeEvent.artifacts) {
+          setArtifacts(completeEvent.artifacts);
+        }
       }
     } catch (e) {
       console.log('No existing events for task (expected for new tasks):', taskId);
@@ -166,6 +179,11 @@ export default function App() {
       setEvents(prev => [...prev, uiEvent]);
       setTurnCount(prev => prev + 1);
       setTotalCost(prev => prev + 0.01);
+      
+      // Handle task_complete event to extract artifacts
+      if (data.event_type === 'task_complete' && data.artifacts) {
+        setArtifacts(data.artifacts);
+      }
     });
     
     setWsConnection(ws);
@@ -191,7 +209,7 @@ export default function App() {
       <Header selectedId={selectedId} onCancel={handleCancelTask} />
       <LeftPanel tasks={tasks} selectedId={selectedId} onSelect={handleSelectTask} onStartTask={handleStartTask} onCancel={handleCancelTask} />
       <CenterFeed events={events} onOpenArtifact={handleOpenArtifact} />
-      <RightPanel />
+      <RightPanel artifacts={artifacts} />
       <Footer turnCount={turnCount} totalCost={totalCost} />
     </div>
   );

@@ -76,6 +76,16 @@ export function mapBackendEventToUI(backendEvent) {
         time: '0m 0s',
       };
     
+    case 'task_complete':
+      return {
+        type: 'task_complete',
+        open: true,
+        observation: {
+          stdout: observation?.stdout || action?.result || 'Task completed successfully'
+        },
+        artifacts: backendEvent.artifacts || [],
+      };
+    
     case 'cancelled':
       return {
         type: 'finish',

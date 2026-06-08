@@ -117,12 +117,158 @@ export function LeftPanel({ tasks, selectedId, onSelect, onStartTask, onCancel }
 }
 
 /* ---------- RIGHT PANEL ---------- */
-function FilesTab() {
+function FilesTab({ artifacts }) {
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [tree, setTree] = useState([]);
+  const [fileContent, setFileContent] = useState('');
+  const [language, setLanguage] = useState('');
+
+  useEffect(() => {
+    if (!artifacts || artifacts.length === 0) return;
+
+    // Build file tree from artifacts
+    const treeMap = new Map();
+    
+    artifacts.forEach(artifact => {
+      // Strip /workspace/{task_id}/ prefix
+      const cleanPath = artifact.filepath.replace(/^\/workspace\/[^/]+\//, '');
+      const parts = cleanPath.split('/');
+      
+      let currentPath = '';
+      parts.forEach((part, index) => {
+        const isLast = index === parts.length - 1;
+        const fullPath = currentPath ? `${currentPath}/${part}` : part;
+        
+        if (!treeMap.has(fullPath)) {
+          treeMap.set(fullPath, {
+            name: part,
+            path: fullPath,
+            isFile: isLast,
+            parent: currentPath || null,
+            children: [],
+            content: artifact.content,
+            language: artifact.language
+          });
+        }
+        
+        // Add to parent's children
+        if (currentPath && treeMap.has(currentPath)) {
+          const parent = treeMap.get(currentPath);
+          if (!parent.children.includes(fullPath)) {
+            parent.children.push(fullPath);
+          }
+        }
+        
+        currentPath = fullPath;
+      });
+    });
+
+    // Convert map to array and sort
+    const treeArray = Array.from(treeMap.values()).sort((a, b) => {
+      if (a.path === b.path) return 0;
+      if (a.path.startsWith(b.path)) return 1;
+      if (b.path.startsWith(a.path)) return -1;
+      return a.path.localeCompare(b.path);
+    });
+
+    setTree(treeArray);
+    
+    // Select first file by default
+    const firstFile = treeArray.find(item => item.isFile);
+    if (firstFile) {
+      setSelectedFile(firstFile.path);
+      setFileContent(firstFile.content);
+      setLanguage(firstFile.language);
+    }
+  }, [artifacts]);
+
+  const handleFileClick = (item) => {
+    if (item.isFile) {
+      setSelectedFile(item.path);
+      setFileContent(item.content);
+      setLanguage(item.language);
+    }
+  };
+
+  const renderTree = (items, parentPath = '') => {
+    return items
+      .filter(item => item.parent === parentPath)
+      .map(item => (
+        <div key={item.path}>
+          <div
+            className="tree-row"
+            onClick={() => handleFileClick(item)}
+            style={{
+              paddingLeft: (7 + (item.path.split('/').length - 1) * 15) + 'px',
+              background: selectedFile === item.path ? 'var(--accent-weak)' : 'transparent'
+            }}
+          >
+            <span className="tw">
+              {!item.isFile ? <Icon name={item.children.length > 0 ? 'chevD' : 'chevR'} /> : null}
+            </span>
+            <span className="fi">
+              <Icon name={item.isFile ? 'fileCode' : 'folder'} />
+            </span>
+            <span className="nm">{item.name}</span>
+          </div>
+          {!item.isFile && renderTree(items, item.path)}
+        </div>
+      ));
+  };
+
+  // Apply syntax highlighting
+  useEffect(() => {
+    if (fileContent && typeof window !== 'undefined' && window.hljs) {
+      const pre = document.querySelector('.code-content');
+      if (pre) {
+        pre.innerHTML = fileContent;
+        window.hljs.highlightElement(pre);
+      }
+    }
+  }, [fileContent, language]);
+
+  if (!artifacts || artifacts.length === 0) {
+    return (
+      <div className="empty-state">
+        <Icon name="fileCode" size={32} />
+        <p>No files touched yet</p>
+      </div>
+    );
+  }
+
   return (
-    <div className="empty-state">
-      <Icon name="fileCode" size={32} />
-      <p>No files touched yet</p>
-    </div>
+    <>
+      <div className="filetree scroll">
+        {renderTree(tree)}
+      </div>
+      <div className="fileview">
+        <div className="fileview-head">
+          <span className="fp">
+            {selectedFile ? (
+              <>
+                <span className="dir">{selectedFile.substring(0, selectedFile.lastIndexOf('/') + 1)}</span>
+                {selectedFile.split('/').pop()}
+              </>
+            ) : 'Select a file'}
+          </span>
+          {selectedFile && language ? (
+            <span className="badge-mod" style={{ marginLeft: '8px' }}>{language}</span>
+          ) : null}
+        </div>
+        <div className="fileview-body scroll">
+          {selectedFile ? (
+            <pre className="codeblock code-content">
+              <code className={`language-${language || 'plaintext'}`}>{fileContent}</code>
+            </pre>
+          ) : (
+            <div className="empty-state" style={{ height: '100%' }}>
+              <Icon name="fileCode" size={32} />
+              <p>Select a file to view its content</p>
+            </div>
+          )}
+        </div>
+      </div>
+    </>
   );
 }
 
@@ -153,7 +299,7 @@ function MetricsTab() {
   );
 }
 
-export function RightPanel() {
+export function RightPanel({ artifacts }) {
   const [tab, setTab] = useState('files');
   const tabs = [
     { id: 'files', label: 'Files', icon: 'folderTree', count: null },
@@ -176,7 +322,7 @@ export function RightPanel() {
         ))}
       </div>
       <div className="right-body">
-        {tab === 'files' ? <FilesTab /> :
+        {tab === 'files' ? <FilesTab artifacts={artifacts} /> :
          tab === 'artifacts' ? <ArtifactsTab /> :
          tab === 'mcts' ? <MctsTab /> :
          <MetricsTab />}

@@ -359,7 +359,25 @@ function MctsCard({ ev }) {
   );
 }
 
-// 12 · Finish -----------------------------------------------
+// 12 · Task Complete -----------------------------------------------
+function TaskCompleteCard({ ev }) {
+  const summary = ev.observation?.stdout || ev.summary || 'Task completed successfully';
+  return (
+    <div className="card task-complete">
+      <div className="task-complete-top">
+        <div className="task-complete-badge"><Icon name="check" /></div>
+        <div>
+          <div className="t">Task Complete</div>
+        </div>
+      </div>
+      <div className="task-complete-summary">
+        {summary}
+      </div>
+    </div>
+  );
+}
+
+// 13 · Finish (legacy) -----------------------------------------------
 function FinishCard({ ev }) {
   return (
     <div className="card finish">
@@ -406,6 +424,7 @@ export function EventCard({ ev, onOpenArtifact }) {
     case 'interrupt':  return <InterruptCard ev={ev} />;
     case 'human':      return <HumanCard ev={ev} />;
     case 'mcts':       return <MctsCard ev={ev} />;
+    case 'task_complete': return <TaskCompleteCard ev={ev} />;
     case 'finish':     return <FinishCard ev={ev} />;
     default: return null;
   }
