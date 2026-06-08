@@ -43,6 +43,35 @@ function ThinkingCard({ ev }) {
   );
 }
 
+// 1.5 · Thinking Bubble (for tool_call events) ---------------
+function ThinkingBubble({ thought }) {
+  if (!thought) return null;
+  return (
+    <div className="card thinking-bubble">
+      <div className="card-body">
+        <span className="card-ico ico-violet"><Icon name="brain" /></span>
+        <p className="think-text">{thought}</p>
+      </div>
+    </div>
+  );
+}
+
+// 1.6 · Session Insights Card ---------------------------------
+export function SessionInsightsCard({ insights }) {
+  if (!insights) return null;
+  return (
+    <div className="card insights-card" style={{ border: '1px solid rgba(255,255,255,0.1)' }}>
+      <div className="card-head">
+        <span className="card-ico ico-info"><Icon name="info" /></span>
+        <span className="card-type">Session Insights</span>
+      </div>
+      <div className="card-body">
+        <p>{insights}</p>
+      </div>
+    </div>
+  );
+}
+
 // 2 · View File ---------------------------------------------
 function ViewCard({ ev }) {
   return (
@@ -363,14 +392,16 @@ function MctsCard({ ev }) {
 function TaskCompleteCard({ ev }) {
   const summary = ev.observation?.stdout || ev.summary || 'Task completed successfully';
   return (
-    <div className="card task-complete">
+    <div className="card task-complete" style={{ backgroundColor: '#1a3a1a', border: '1px solid #2a5a2a' }}>
       <div className="task-complete-top">
-        <div className="task-complete-badge"><Icon name="check" /></div>
+        <div className="task-complete-badge" style={{ backgroundColor: '#2a5a2a', color: '#ffffff' }}>
+          <Icon name="check" />
+        </div>
         <div>
-          <div className="t">Task Complete</div>
+          <div className="t" style={{ color: '#ffffff', fontWeight: 'bold' }}>Task Complete</div>
         </div>
       </div>
-      <div className="task-complete-summary">
+      <div className="task-complete-summary" style={{ color: '#e0e0e0' }}>
         {summary}
       </div>
     </div>
@@ -412,6 +443,29 @@ function FinishCard({ ev }) {
 
 // Dispatcher -------------------------------------------------
 export function EventCard({ ev, onOpenArtifact }) {
+  // Handle tool_call_with_thought - render thinking bubble + tool card
+  if (ev.type === 'tool_call_with_thought') {
+    const toolEvent = {
+      ...ev,
+      type: ev.tool_event_type || 'run'
+    };
+    
+    let ToolCard;
+    switch (toolEvent.type) {
+      case 'edit': ToolCard = EditCard; break;
+      case 'view': ToolCard = ViewCard; break;
+      case 'search': ToolCard = SearchCard; break;
+      default: ToolCard = RunCard;
+    }
+    
+    return (
+      <>
+        <ThinkingBubble thought={ev.thought} />
+        <ToolCard ev={toolEvent} />
+      </>
+    );
+  }
+  
   switch (ev.type) {
     case 'thinking':   return <ThinkingCard ev={ev} />;
     case 'view':       return <ViewCard ev={ev} />;
@@ -424,6 +478,7 @@ export function EventCard({ ev, onOpenArtifact }) {
     case 'interrupt':  return <InterruptCard ev={ev} />;
     case 'human':      return <HumanCard ev={ev} />;
     case 'mcts':       return <MctsCard ev={ev} />;
+    case 'task_complete': return <TaskCompleteCard ev={ev} />;
     case 'task_complete': return <TaskCompleteCard ev={ev} />;
     case 'finish':     return <FinishCard ev={ev} />;
     default: return null;

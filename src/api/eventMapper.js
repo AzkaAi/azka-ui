@@ -10,8 +10,70 @@ export function mapBackendEventToUI(backendEvent) {
   // Extract thought from action if available
   const thought = action?.thought || action?.tool_args?.thought || '';
   
+  // For tool_call events, create both thinking and tool event
+  if (event_type === 'tool_call' && thought) {
+    const toolName = action?.tool_name || 'unknown';
+    let toolEventType = 'run';
+    let toolEventData = {};
+    
+    // Map tool names to event types and extract relevant data
+    if (toolName === 'edit_file' || toolName === 'edit') {
+      toolEventType = 'edit';
+      toolEventData = {
+        path: action?.tool_args?.filepath || action?.filepath,
+        result: observation?.success ? 'ok' : 'error',
+        added: 0,
+        removed: 0,
+        hunk: '@@ -1,1 +1,1 @@',
+        diff: observation?.success ? [
+          { k: 'ctx', n: '1', s: ' ', t: action?.tool_args?.new_string || action?.new_string }
+        ] : [],
+      };
+    } else if (toolName === 'view_file' || toolName === 'view') {
+      toolEventType = 'view';
+      toolEventData = {
+        path: action?.tool_args?.file_path || action?.file_path,
+        lang: 'py',
+        lines: '1-100',
+        code: observation?.success ? [
+          { n: 1, html: observation?.result || observation?.stdout || 'File content...' }
+        ] : [],
+      };
+    } else if (toolName === 'search') {
+      toolEventType = 'search';
+      toolEventData = {
+        query: action?.tool_args?.query || 'search',
+        scope: action?.tool_args?.path || '.',
+        results: observation?.results || [],
+      };
+    } else {
+      // Default to run command
+      toolEventData = {
+        cmd: action?.tool_args?.command?.join(' ') || action?.command,
+        exit: observation?.exit_code || (observation?.success ? 0 : 1),
+        duration: '1.0s',
+        lines: [
+          { c: 'cmd', html: `<span class="p">~/orchestrator</span> $ ${action?.tool_args?.command?.join(' ') || action?.command}` },
+          { c: 'o', html: observation?.stdout || observation?.stderr || 'Command executed' }
+        ],
+      };
+    }
+    
+    return {
+      type: 'tool_call_with_thought',
+      open: true,
+      thought: thought,
+      tool_name: toolName,
+      tool_args: action?.tool_args || {},
+      observation: observation || {},
+      event_type: event_type,
+      tool_event_type: toolEventType,
+      ...toolEventData
+    };
+  }
+  
   // Create thinking event if thought exists and it's not already a thinking event
-  if (thought && event_type !== 'thinking' && event_type !== 'cancelled') {
+  if (thought && event_type !== 'thinking' && event_type !== 'cancelled' && event_type !== 'tool_call') {
     return {
       type: 'thinking',
       open: true,
@@ -41,7 +103,7 @@ export function mapBackendEventToUI(backendEvent) {
         type: 'run',
         open: true,
         cmd: action.tool_args?.command?.join(' ') || action.command,
-        exit: observation.success ? 0 : 1,
+        exit: observation.exit_code || (observation.success ? 0 : 1),
         duration: '1.0s',
         lines: [
           { c: 'cmd', html: `<span class="p">~/orchestrator</span> $ ${action.tool_args?.command?.join(' ') || action.command}` },

@@ -22,16 +22,20 @@ export function Header({ selectedId, onCancel }) {
 }
 
 /* ---------- LEFT PANEL ---------- */
-function TaskRow({ task, selected, onSelect, onCancel }) {
+function TaskRow({ task, selected, onSelect, onCancel, onTaskUpdate }) {
   // Handle both string IDs and object tasks
   const taskId = typeof task === 'string' ? task : task.task_id || task.id;
-  const taskDesc = typeof task === 'string' ? `Task ${taskId}` : task.description || task.desc || `Task ${taskId}`;
+  const taskDesc = typeof task === 'string' ? `Task ${taskId}` : (task.description || task.desc || 'Untitled Task');
   const taskStatus = typeof task === 'string' ? 'active' : task.status || 'active';
   
   async function handleCancel(e) {
     e.stopPropagation();
     if (onCancel && window.confirm('Stop this task? The agent will finish its current action then stop.')) {
       await onCancel(taskId);
+      // Immediately update task status in UI
+      if (onTaskUpdate) {
+        onTaskUpdate(taskId, 'CANCELLED');
+      }
     }
   }
   
@@ -59,7 +63,7 @@ function TaskRow({ task, selected, onSelect, onCancel }) {
   );
 }
 
-export function LeftPanel({ tasks, selectedId, onSelect, onStartTask, onCancel }) {
+export function LeftPanel({ tasks, selectedId, onSelect, onStartTask, onCancel, onTaskUpdate }) {
   const [taskInput, setTaskInput] = useState('');
   
   async function handleSubmit() {
@@ -108,6 +112,7 @@ export function LeftPanel({ tasks, selectedId, onSelect, onStartTask, onCancel }
               selected={(t.task_id || t.id) === selectedId}
               onSelect={() => onSelect(t.task_id || t.id)}
               onCancel={onCancel}
+              onTaskUpdate={onTaskUpdate}
             />
           ))
         )}
@@ -190,6 +195,15 @@ function FilesTab({ artifacts }) {
     }
   };
 
+  // Check if file is an image
+  const isImage = selectedFile && (
+    language === 'screenshot' ||
+    selectedFile.endsWith('.png') ||
+    selectedFile.endsWith('.jpg') ||
+    selectedFile.endsWith('.jpeg') ||
+    selectedFile.endsWith('.gif')
+  );
+
   const renderTree = (items, parentPath = '') => {
     return items
       .filter(item => item.parent === parentPath)
@@ -257,9 +271,23 @@ function FilesTab({ artifacts }) {
         </div>
         <div className="fileview-body scroll">
           {selectedFile ? (
-            <pre className="codeblock code-content">
-              <code className={`language-${language || 'plaintext'}`}>{fileContent}</code>
-            </pre>
+            isImage ? (
+              <div style={{ padding: '16px', display: 'flex', justifyContent: 'center' }}>
+                <img 
+                  src={fileContent.startsWith('data:') ? fileContent : `data:image/png;base64,${fileContent}`}
+                  alt={selectedFile}
+                  style={{ maxWidth: '100%', height: 'auto' }}
+                  onError={(e) => {
+                    console.error('Image load error:', e);
+                    e.target.style.display = 'none';
+                  }}
+                />
+              </div>
+            ) : (
+              <pre className="codeblock code-content">
+                <code className={`language-${language || 'plaintext'}`}>{fileContent}</code>
+              </pre>
+            )
           ) : (
             <div className="empty-state" style={{ height: '100%' }}>
               <Icon name="fileCode" size={32} />
@@ -332,7 +360,7 @@ export function RightPanel({ artifacts }) {
 }
 
 /* ---------- FOOTER ---------- */
-export function Footer({ turnCount, totalCost }) {
+export function Footer({ turnCount, totalCost, activeSandboxes }) {
   const [secs, setSecs] = useState(0);
   useEffect(() => {
     const id = setInterval(() => {
@@ -364,7 +392,7 @@ export function Footer({ turnCount, totalCost }) {
       <div className="foot-item">
         <Icon name="boxes" />
         <span className="fk">Sandboxes</span>
-        <span className="fv">0</span>
+        <span className="fv">{activeSandboxes || '0 / 4'}</span>
       </div>
       <div className="foot-spacer" />
       <div className="foot-item">

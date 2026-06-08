@@ -1,11 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Icon } from './icons.jsx';
-import { EventCard } from './cards.jsx';
+import { EventCard, SessionInsightsCard } from './cards.jsx';
 import { Header, LeftPanel, RightPanel, Footer } from './panels.jsx';
-import { startTask, getTasks, connectWebSocket, cancelTask, getTaskEvents } from '../api/client.js';
+import { startTask, getTasks, connectWebSocket, cancelTask, getTaskEvents, switchToTask } from '../api/client.js';
 import { mapBackendEventToUI } from '../api/eventMapper.js';
 
-function CenterFeed({ events, onOpenArtifact }) {
+function CenterFeed({ events, insights, onOpenArtifact }) {
   const feedRef = useRef(null);
   const [showUnread, setShowUnread] = useState(false);
 
@@ -36,6 +36,7 @@ function CenterFeed({ events, onOpenArtifact }) {
       </div>
       <div className="feed scroll" ref={feedRef} onScroll={onScroll}>
         <div className="feed-inner">
+          <SessionInsightsCard insights={insights} />
           {events.length === 0 ? (
             <div className="empty-state">
               <Icon name="activity" size={32} />
@@ -64,6 +65,8 @@ export default function App() {
   const [turnCount, setTurnCount] = useState(0);
   const [totalCost, setTotalCost] = useState(0);
   const [artifacts, setArtifacts] = useState(null);
+  const [insights, setInsights] = useState(null);
+  const [activeSandboxes, setActiveSandboxes] = useState('0 / 4');
 
   // Load tasks on mount and poll every 5 seconds
   useEffect(() => {
@@ -119,8 +122,13 @@ export default function App() {
         console.log('WebSocket event:', data);
         const uiEvent = mapBackendEventToUI(data);
         setEvents(prev => [...prev, uiEvent]);
-        setTurnCount(prev => prev + 1);
-        setTotalCost(prev => prev + 0.01);
+        
+        // Update metadata from event
+        if (data.metadata) {
+          setTurnCount(data.metadata.turn_number || 0);
+          setTotalCost(data.metadata.accumulated_cost_usd || 0);
+          setActiveSandboxes(data.metadata.active_sandboxes || '0 / 4');
+        }
         
         // Handle task_complete event to extract artifacts
         if (data.event_type === 'task_complete' && data.artifacts) {
@@ -145,6 +153,7 @@ export default function App() {
     setTurnCount(0);
     setTotalCost(0);
     setArtifacts(null);
+    setInsights(null);
     
     // Close existing WebSocket
     if (wsConnection) {
@@ -152,41 +161,36 @@ export default function App() {
       setWsConnection(null);
     }
     
-    // Load existing events for this task
+    // Load task details including insights and artifacts
     try {
-      const eventData = await getTaskEvents(taskId);
-      console.log('Loaded existing events for task:', taskId, eventData);
-      
-      if (eventData.events && Array.isArray(eventData.events)) {
-        const uiEvents = eventData.events.map(ev => mapBackendEventToUI(ev));
-        setEvents(uiEvents);
-        setTurnCount(uiEvents.length);
-        setTotalCost(uiEvents.length * 0.01);
-        
-        // Check for task_complete event and extract artifacts
-        const completeEvent = eventData.events.find(ev => ev.event_type === 'task_complete');
-        if (completeEvent && completeEvent.artifacts) {
-          setArtifacts(completeEvent.artifacts);
-        }
+      const taskData = await getTaskEvents(taskId);
+      if (taskData.insights) {
+        setInsights(taskData.insights);
+      }
+      if (taskData.artifacts) {
+        setArtifacts(taskData.artifacts);
       }
     } catch (e) {
-      console.log('No existing events for task (expected for new tasks):', taskId);
+      console.log('No task details available:', taskId);
     }
     
-    // Connect to new task's WebSocket for live updates
-    const ws = connectWebSocket(taskId, (data) => {
+    // Use switchToTask pattern for history loading and WebSocket connection
+    switchToTask(taskId, (data) => {
       const uiEvent = mapBackendEventToUI(data);
       setEvents(prev => [...prev, uiEvent]);
-      setTurnCount(prev => prev + 1);
-      setTotalCost(prev => prev + 0.01);
+      
+      // Update metadata from event
+      if (data.metadata) {
+        setTurnCount(data.metadata.turn_number || 0);
+        setTotalCost(data.metadata.accumulated_cost_usd || 0);
+        setActiveSandboxes(data.metadata.active_sandboxes || '0 / 4');
+      }
       
       // Handle task_complete event to extract artifacts
       if (data.event_type === 'task_complete' && data.artifacts) {
         setArtifacts(data.artifacts);
       }
     });
-    
-    setWsConnection(ws);
   }
 
   function handleOpenArtifact(artifactId) {
@@ -204,13 +208,23 @@ export default function App() {
     }
   }
 
+  function handleTaskUpdate(taskId, newStatus) {
+    setTasks(prevTasks => 
+      prevTasks.map(task => 
+        (task.task_id === taskId || task.id === taskId) 
+          ? { ...task, status: newStatus }
+          : task
+      )
+    );
+  }
+
   return (
     <div className="app">
       <Header selectedId={selectedId} onCancel={handleCancelTask} />
-      <LeftPanel tasks={tasks} selectedId={selectedId} onSelect={handleSelectTask} onStartTask={handleStartTask} onCancel={handleCancelTask} />
-      <CenterFeed events={events} onOpenArtifact={handleOpenArtifact} />
+      <LeftPanel tasks={tasks} selectedId={selectedId} onSelect={handleSelectTask} onStartTask={handleStartTask} onCancel={handleCancelTask} onTaskUpdate={handleTaskUpdate} />
+      <CenterFeed events={events} insights={insights} onOpenArtifact={handleOpenArtifact} />
       <RightPanel artifacts={artifacts} />
-      <Footer turnCount={turnCount} totalCost={totalCost} />
+      <Footer turnCount={turnCount} totalCost={totalCost} activeSandboxes={activeSandboxes} />
     </div>
   );
 }
