@@ -184,8 +184,6 @@ export default function App() {
     setTotalCost(0);
     setArtifacts(null);
     setInsights(null);
-    setIsLive(false); // Loading from history, not live
-    setTaskStatus('idle');
     
     // Close existing WebSocket
     if (wsConnection) {
@@ -194,6 +192,7 @@ export default function App() {
     }
     
     // Load task details including insights and artifacts
+    let taskIsActive = false;
     try {
       const taskData = await getTaskEvents(taskId);
       if (taskData.insights) {
@@ -202,14 +201,22 @@ export default function App() {
       if (taskData.artifacts) {
         setArtifacts(taskData.artifacts);
       }
-      // Set status based on task completion
+      // Check if task is active (not completed)
       const hasCompleteEvent = taskData.events?.some(e => e.event_type === 'task_complete');
-      setTaskStatus(hasCompleteEvent ? 'complete' : 'idle');
+      taskIsActive = !hasCompleteEvent;
+      setTaskStatus(hasCompleteEvent ? 'complete' : 'active');
     } catch (e) {
       console.log('No task details available:', taskId);
+      // If we can't load task details, assume it might be active
+      taskIsActive = true;
+      setTaskStatus('active');
     }
     
+    // Set isLive based on whether task is active
+    setIsLive(taskIsActive);
+    
     // Use switchToTask pattern for history loading and WebSocket connection
+    // This is called for EVERY task click regardless of status
     switchToTask(taskId, (data) => {
       const uiEvent = mapBackendEventToUI(data);
       setEvents(prev => [...prev, uiEvent]);
@@ -225,6 +232,7 @@ export default function App() {
       if (data.event_type === 'task_complete' && data.artifacts) {
         setArtifacts(data.artifacts);
         setTaskStatus('complete');
+        setIsLive(false); // Task is no longer live
       }
     });
   }
