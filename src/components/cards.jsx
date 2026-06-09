@@ -46,6 +46,21 @@ function ThinkingCard({ ev }) {
 // 1.5 · Session Insights Card ---------------------------------
 export function SessionInsightsCard({ insights }) {
   if (!insights) return null;
+  
+  // Render markdown to HTML using marked
+  const renderInsights = (text) => {
+    if (!text) return "";
+    if (typeof window !== 'undefined' && window.marked) {
+      return window.marked.parse(text);
+    }
+    // Fallback: simple markdown rendering
+    return text
+      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*(.*?)\*/g, '<em>$1</em>')
+      .replace(/`(.*?)`/g, '<code>$1</code>')
+      .replace(/\n/g, '<br>');
+  };
+  
   return (
     <div className="card insights-card" style={{ border: '1px solid rgba(255,255,255,0.1)' }}>
       <div className="card-head">
@@ -53,7 +68,10 @@ export function SessionInsightsCard({ insights }) {
         <span className="card-type">Session Insights</span>
       </div>
       <div className="card-body">
-        <p>{insights}</p>
+        <div 
+          className="insights-content"
+          dangerouslySetInnerHTML={{__html: renderInsights(insights)}}
+        />
       </div>
     </div>
   );

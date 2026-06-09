@@ -106,6 +106,7 @@ export default function App() {
     try {
       const data = await getTasks();
       console.log('Loaded tasks:', data);
+      console.log('[Task object sample]', data.tasks?.[0]);
       // Use backend tasks directly or empty array
       setTasks(data.tasks || []);
     } catch (e) {
@@ -165,11 +166,22 @@ export default function App() {
           setArtifacts(data.artifacts);
           setTaskStatus('complete');
           // Update task status in left panel
-          setTasks(prev => prev.map(t => 
-            (t.task_id === taskId || t.id === taskId) 
-              ? {...t, status: 'completed'} 
-              : t
-          ));
+          console.log("[Task complete] Updating task status for:", taskId);
+          console.log("[Current tasks]", tasks);
+          setTasks(prev => {
+            console.log("[Updating tasks from]", prev);
+            const updated = prev.map(t => {
+              const taskIdField = t.task_id || t.id;
+              console.log("[Checking task]", taskIdField, "matches", taskId, ":", taskIdField === taskId);
+              return taskIdField === taskId 
+                ? {...t, status: 'completed'} 
+                : t;
+            });
+            console.log("[Updated tasks]", updated);
+            return updated;
+          });
+          // Refresh task list from backend
+          loadTasks();
         }
       });
       
@@ -248,11 +260,22 @@ export default function App() {
         setTaskStatus('complete');
         setIsLive(false); // Task is no longer live
         // Update task status in left panel
-        setTasks(prev => prev.map(t => 
-          (t.task_id === taskId || t.id === taskId) 
-            ? {...t, status: 'completed'} 
-            : t
-        ));
+        console.log("[Task complete in switchToTask] Updating task status for:", taskId);
+        console.log("[Current tasks]", tasks);
+        setTasks(prev => {
+          console.log("[Updating tasks from]", prev);
+          const updated = prev.map(t => {
+            const taskIdField = t.task_id || t.id;
+            console.log("[Checking task]", taskIdField, "matches", taskId, ":", taskIdField === taskId);
+            return taskIdField === taskId 
+              ? {...t, status: 'completed'} 
+              : t;
+          });
+          console.log("[Updated tasks]", updated);
+          return updated;
+        });
+        // Refresh task list from backend
+        loadTasks();
       }
     });
   }

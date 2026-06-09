@@ -138,14 +138,20 @@ function FilesTab({ artifacts }) {
 
   // Download single file
   function downloadFile(filepath, content) {
-    const filename = filepath.split("/").pop();
-    const blob = new Blob([content], {type: "text/plain"});
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = filename;
-    a.click();
-    URL.revokeObjectURL(url);
+    try {
+      const filename = filepath.split("/").pop();
+      const blob = new Blob([content], {type: "text/plain;charset=utf-8"});
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      setTimeout(() => URL.revokeObjectURL(url), 100);
+    } catch(e) {
+      console.error("Download failed:", e);
+    }
   }
 
   // Download all files as zip
@@ -160,7 +166,7 @@ function FilesTab({ artifacts }) {
       if (trajectoryIdx !== -1) {
         filename = filename.substring(trajectoryIdx + trajectoryMarker.length);
       } else {
-        filename = filename.replace(/^\/workspace\/[^/]+\//, '');
+        filename = filename.replace(/\/?workspace\/[^/]+\//, "");
       }
       zip.file(filename, artifact.content);
     });
@@ -170,7 +176,9 @@ function FilesTab({ artifacts }) {
     const a = document.createElement("a");
     a.href = url;
     a.download = "azka_output.zip";
+    document.body.appendChild(a);
     a.click();
+    document.body.removeChild(a);
     URL.revokeObjectURL(url);
   }
 
@@ -181,15 +189,15 @@ function FilesTab({ artifacts }) {
     const treeMap = new Map();
     
     artifacts.forEach(artifact => {
-      // Strip workspace prefix - handle both trajectory-0/ and /workspace/{task_id}/ formats
+      // Strip workspace prefix - handle both trajectory-0/ and workspace/{task_id}/ formats
       let cleanPath = artifact.filepath;
       const trajectoryMarker = "trajectory-0/";
       const trajectoryIdx = cleanPath.indexOf(trajectoryMarker);
       if (trajectoryIdx !== -1) {
         cleanPath = cleanPath.substring(trajectoryIdx + trajectoryMarker.length);
       } else {
-        // Fallback: strip /workspace/{task_id}/ prefix
-        cleanPath = cleanPath.replace(/^\/workspace\/[^/]+\//, '');
+        // Remove workspace/{task_id}/ prefix with or without leading slash
+        cleanPath = cleanPath.replace(/\/?workspace\/[^/]+\//, "");
       }
       
       const parts = cleanPath.split('/');
@@ -250,6 +258,7 @@ function FilesTab({ artifacts }) {
   }, [artifacts, monacoEditor.isReady]);
 
   const handleFileClick = (item) => {
+    console.log("[File clicked]", item.path, "content length:", item.content?.length, "editor ready:", monacoEditor.isReady);
     if (item.isFile) {
       setSelectedFile(item.path);
       setFileContent(item.content);
@@ -258,9 +267,12 @@ function FilesTab({ artifacts }) {
       
       // Load file content in Monaco editor
       if (monacoEditor.isReady) {
-        monacoEditor.setValue(item.content);
-        monacoEditor.setLanguage(item.language);
+        console.log("[Monaco] Setting value, length:", item.content?.length);
+        monacoEditor.setValue(item.content || "");
+        monacoEditor.setLanguage(item.language || 'plaintext');
         animateFileView(monacoEditor);
+      } else {
+        console.error("[Monaco] Editor not initialized");
       }
     }
   };
@@ -280,7 +292,7 @@ function FilesTab({ artifacts }) {
       .map(item => (
         <div key={item.path}>
           <div
-            className={`tree-row ${item.isNew ? 'new-file' : ''}`}
+            className={`file-tree-item ${item.isNew ? 'new-file' : ''}`}
             onClick={() => handleFileClick(item)}
             style={{
               paddingLeft: (7 + (item.path.split('/').length - 1) * 15) + 'px',
@@ -298,12 +310,13 @@ function FilesTab({ artifacts }) {
             <span className="fi">
               <Icon name={item.isFile ? 'fileCode' : 'folder'} />
             </span>
-            <span className="nm">{item.name}</span>
+            <span className="file-tree-filename">{item.name}</span>
             {item.isFile && (
               <button 
-                className="download-btn"
+                className="file-download-btn"
                 onClick={(e) => {
                   e.stopPropagation();
+                  console.log("[Download clicked]", item.path);
                   downloadFile(item.path, item.content);
                 }}
                 title="Download file"

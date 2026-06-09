@@ -867,6 +867,121 @@ input.repo-input { font-family: var(--mono); font-size: 12px; }
   height: 14px;
 }
 
+/* ---- FILE TREE ITEM STYLING ---- */
+.file-tree-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.file-tree-item:hover {
+  background: rgba(255,255,255,0.05);
+}
+
+.file-tree-filename {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+}
+
+.file-download-btn {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.2s;
+  background: transparent;
+  border: none;
+  color: #9ca3af;
+}
+
+.file-tree-item:hover .file-download-btn {
+  opacity: 1;
+}
+
+.file-download-btn:hover {
+  background: rgba(255,255,255,0.1);
+  color: white;
+}
+
+/* ---- INSIGHTS CONTENT ---- */
+.insights-content {
+  line-height: 1.6;
+  font-size: 13px;
+  color: #d1d5db;
+}
+
+.insights-content strong {
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.insights-content em {
+  color: #c4b5fd;
+  font-style: italic;
+}
+
+.insights-content code {
+  background: rgba(255,255,255,0.1);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: var(--mono);
+  font-size: 12px;
+}
+
+/* ---- RIGHT PANEL SPACING ---- */
+.fileview {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+}
+
+.fileview-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--surface-2);
+  border-radius: var(--r-sm);
+  border: 1px solid var(--border);
+}
+
+.fileview-body {
+  flex: 1;
+  min-height: 400px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  overflow: hidden;
+}
+
+/* ---- EMPTY STATE IMPROVEMENTS ---- */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 32px;
+  color: var(--text-3);
+  text-align: center;
+}
+
+.empty-state p {
+  margin: 0;
+  font-size: 14px;
+}
+
 /* ---- SPECIAL CARDS ---- */
 
 /* system interrupt */
