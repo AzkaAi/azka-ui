@@ -631,21 +631,37 @@ function MctsCard({ ev }) {
 }
 
 // 12 · Task Complete -----------------------------------------------
-function TaskCompleteCard({ ev }) {
-  const summary = ev.observation?.stdout || ev.summary || 'Task completed successfully';
+function TaskCompleteCard({ event }) {
+  const summary = event?.observation?.stdout || 
+                  event?.action?.tool_args?.summary || 
+                  'Task completed successfully';
+  
+  // Clean up the summary — remove workspace paths and markdown
+  const cleanSummary = summary
+    .replace(/\/workspace\/[a-f0-9-]+\/trajectory-0\/workspace\/[a-f0-9]+\//g, '')
+    .replace(/\/workspace\/[a-f0-9-]+\//g, '')
+    .replace(/trajectory-0\/workspace\/[a-f0-9]+\//g, '')
+    .replace(/\*\*/g, '')
+    .slice(0, 300);
+  
   return (
-    <div className="card task-complete-card event-card" style={{ backgroundColor: '#1a3a1a', border: '1px solid #2a5a2a' }}>
-      <div className="task-complete-top">
-        <div className="task-complete-badge complete-checkmark" style={{ backgroundColor: '#2a5a2a', color: '#ffffff' }}>
-          <Icon name="check" />
+    <div className="task-complete-card">
+      <div className="task-complete-header">
+        <div className="task-complete-icon">
+          <span>✓</span>
         </div>
-        <div>
-          <div className="t" style={{ color: '#ffffff', fontWeight: 'bold' }}>Task Complete</div>
+        <div className="task-complete-title">
+          <span className="task-complete-label">Task Complete</span>
+          <span className="task-complete-subtitle">
+            Agent finished successfully
+          </span>
         </div>
       </div>
-      <div className="task-complete-summary" style={{ color: '#e0e0e0' }}>
-        {summary}
-      </div>
+      {cleanSummary && (
+        <div className="task-complete-summary">
+          {cleanSummary}
+        </div>
+      )}
     </div>
   );
 }
@@ -658,26 +674,14 @@ function FinishCard({ ev }) {
         <div className="finish-badge"><Icon name="check" /></div>
         <div>
           <div className="t">Task Complete</div>
-          <div className="sub">Agent finished successfully · 2 files changed</div>
+          <div className="sub">Agent finished successfully</div>
         </div>
       </div>
       <div className="finish-summary">
         {ev.summary}
-        <ul>{ev.bullets.map((b, i) => <li key={i}>{b}</li>)}</ul>
-      </div>
-      <div className="finish-stats">
-        <div className="fstat">
-          <div className="k"><Icon name="coins" /> Tokens</div>
-          <div className="v">{ev.tokens}</div>
-        </div>
-        <div className="fstat">
-          <div className="k"><Icon name="dollar" /> Cost</div>
-          <div className="v">{ev.cost}</div>
-        </div>
-        <div className="fstat">
-          <div className="k"><Icon name="timer" /> Time</div>
-          <div className="v">{ev.time}</div>
-        </div>
+        {ev.bullets && ev.bullets.length > 0 && (
+          <ul>{ev.bullets.map((b, i) => <li key={i}>{b}</li>)}</ul>
+        )}
       </div>
     </div>
   );
@@ -697,7 +701,7 @@ export function EventCard({ ev, onOpenArtifact }) {
     case 'interrupt':  return <InterruptCard ev={ev} />;
     case 'human':      return <HumanCard ev={ev} />;
     case 'mcts':       return <MctsCard ev={ev} />;
-    case 'task_complete': return <TaskCompleteCard ev={ev} />;
+    case 'task_complete': return <TaskCompleteCard event={ev} />;
     case 'finish':     return <FinishCard ev={ev} />;
     default: return renderEvent(ev);
   }
