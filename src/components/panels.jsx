@@ -128,7 +128,6 @@ export function LeftPanel({ tasks, selectedId, onSelect, onStartTask, onCancel, 
 /* ---------- RIGHT PANEL ---------- */
 function FilesTab({ artifacts }) {
   const [selectedFile, setSelectedFile] = useState(null);
-  const [tree, setTree] = useState([]);
   const [fileContent, setFileContent] = useState('');
   const [language, setLanguage] = useState('');
   const [isNewFile, setIsNewFile] = useState(false);
@@ -136,10 +135,25 @@ function FilesTab({ artifacts }) {
   
   const monacoEditor = useMonacoEditor(containerRef);
 
+  // Get display path - strip workspace prefixes
+  function getDisplayPath(filepath) {
+    if (!filepath) return "";
+    const parts = filepath.split("/");
+    const workspaceIdx = parts.findIndex(p => p === "workspace");
+    if (workspaceIdx !== -1 && parts.length > workspaceIdx + 2) {
+      return parts.slice(workspaceIdx + 2).join("/");
+    }
+    const trajIdx = parts.findIndex(p => p === "trajectory-0");
+    if (trajIdx !== -1) {
+      return parts.slice(trajIdx + 1).join("/");
+    }
+    return parts[parts.length - 1];
+  }
+
   // Download single file
   function downloadFile(filepath, content) {
     try {
-      const filename = filepath.split("/").pop();
+      const filename = getDisplayPath(filepath).split("/").pop();
       const blob = new Blob([content], {type: "text/plain;charset=utf-8"});
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
@@ -160,14 +174,7 @@ function FilesTab({ artifacts }) {
     
     const zip = new JSZip();
     artifacts.forEach(artifact => {
-      let filename = artifact.filepath;
-      const trajectoryMarker = "trajectory-0/";
-      const trajectoryIdx = filename.indexOf(trajectoryMarker);
-      if (trajectoryIdx !== -1) {
-        filename = filename.substring(trajectoryIdx + trajectoryMarker.length);
-      } else {
-        filename = filename.replace(/\/?workspace\/[^/]+\//, "");
-      }
+      const filename = getDisplayPath(artifact.filepath);
       zip.file(filename, artifact.content);
     });
     
@@ -185,95 +192,37 @@ function FilesTab({ artifacts }) {
   useEffect(() => {
     if (!artifacts || artifacts.length === 0) return;
 
-    // Build file tree from artifacts
-    const treeMap = new Map();
-    
-    artifacts.forEach(artifact => {
-      // Strip workspace prefix - handle both trajectory-0/ and workspace/{task_id}/ formats
-      let cleanPath = artifact.filepath;
-      const trajectoryMarker = "trajectory-0/";
-      const trajectoryIdx = cleanPath.indexOf(trajectoryMarker);
-      if (trajectoryIdx !== -1) {
-        cleanPath = cleanPath.substring(trajectoryIdx + trajectoryMarker.length);
-      } else {
-        // Remove workspace/{task_id}/ prefix with or without leading slash
-        cleanPath = cleanPath.replace(/\/?workspace\/[^/]+\//, "");
-      }
-      
-      const parts = cleanPath.split('/');
-      
-      let currentPath = '';
-      parts.forEach((part, index) => {
-        const isLast = index === parts.length - 1;
-        const fullPath = currentPath ? `${currentPath}/${part}` : part;
-        
-        if (!treeMap.has(fullPath)) {
-          treeMap.set(fullPath, {
-            name: part,
-            path: fullPath,
-            isFile: isLast,
-            parent: currentPath || null,
-            children: [],
-            content: artifact.content,
-            language: artifact.language,
-            isNew: true // Mark as new for animation
-          });
-        }
-        
-        // Add to parent's children
-        if (currentPath && treeMap.has(currentPath)) {
-          const parent = treeMap.get(currentPath);
-          if (!parent.children.includes(fullPath)) {
-            parent.children.push(fullPath);
-          }
-        }
-        
-        currentPath = fullPath;
-      });
-    });
-
-    // Convert map to array and sort
-    const treeArray = Array.from(treeMap.values()).sort((a, b) => {
-      if (a.path === b.path) return 0;
-      if (a.path.startsWith(b.path)) return 1;
-      if (b.path.startsWith(a.path)) return -1;
-      return a.path.localeCompare(b.path);
-    });
-
-    setTree(treeArray);
-    
+    // Just use artifacts directly - no tree building needed
     // Select first file by default
-    const firstFile = treeArray.find(item => item.isFile);
-    if (firstFile) {
-      setSelectedFile(firstFile.path);
+    if (artifacts.length > 0) {
+      const firstFile = artifacts[0];
+      setSelectedFile(firstFile.filepath);
       setFileContent(firstFile.content);
       setLanguage(firstFile.language);
       setIsNewFile(true);
       
       // Animate file creation if Monaco is ready
       if (monacoEditor.isReady) {
-        animateFileCreation(monacoEditor, firstFile.path, firstFile.content, firstFile.language);
+        animateFileCreation(monacoEditor, firstFile.filepath, firstFile.content, firstFile.language);
       }
     }
   }, [artifacts, monacoEditor.isReady]);
 
-  const handleFileClick = (item) => {
-    console.log("[File clicked]", item.path, "content length:", item.content?.length, "editor ready:", monacoEditor.isReady);
-    if (item.isFile) {
-      setSelectedFile(item.path);
-      setFileContent(item.content);
-      setLanguage(item.language);
-      setIsNewFile(false);
-      
-      // Load file content in Monaco editor
-      if (monacoEditor.isReady) {
-        console.log("[Monaco] Setting value, length:", item.content?.length);
-        monacoEditor.setValue(item.content || "");
-        monacoEditor.setLanguage(item.language || 'plaintext');
-        animateFileView(monacoEditor);
-      } else {
-        console.error("[Monaco] Editor not initialized");
-      }
+  const handleFileClick = (artifact) => {
+    console.log("[File clicked]", artifact.filepath, "content length:", artifact.content?.length, "editor ready:", monacoEditor.isReady);
+    setSelectedFile(artifact.filepath);
+    setFileContent(artifact.content);
+    setLanguage(artifact.language);
+    setIsNewFile(false);
+    
+    // Load file content in Monaco editor
+    if (monacoEditor.isReady) {
+      console.log("[Monaco] Setting value, length:", artifact.content?.length);
+      monacoEditor.setValue(artifact.content || "");
+      monacoEditor.setLanguage(artifact.language || 'plaintext');
+      animateFileView(monacoEditor);
+    } else {
+      console.error("[Monaco] Editor not initialized");
     }
   };
 
@@ -285,50 +234,6 @@ function FilesTab({ artifacts }) {
     selectedFile.endsWith('.jpeg') ||
     selectedFile.endsWith('.gif')
   );
-
-  const renderTree = (items, parentPath = '') => {
-    return items
-      .filter(item => item.parent === parentPath)
-      .map(item => (
-        <div key={item.path}>
-          <div
-            className={`file-tree-item ${item.isNew ? 'new-file' : ''}`}
-            onClick={() => handleFileClick(item)}
-            style={{
-              paddingLeft: (7 + (item.path.split('/').length - 1) * 15) + 'px',
-              background: selectedFile === item.path ? 'var(--accent-weak)' : 'transparent'
-            }}
-          >
-            <span className="tw">
-              {!item.isFile ? (
-                <Icon 
-                  name={item.children.length > 0 ? 'chevD' : 'chevR'} 
-                  className={`folder-icon ${selectedFile === item.path ? 'open' : ''}`}
-                />
-              ) : null}
-            </span>
-            <span className="fi">
-              <Icon name={item.isFile ? 'fileCode' : 'folder'} />
-            </span>
-            <span className="file-tree-filename">{item.name}</span>
-            {item.isFile && (
-              <button 
-                className="file-download-btn"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  console.log("[Download clicked]", item.path);
-                  downloadFile(item.path, item.content);
-                }}
-                title="Download file"
-              >
-                <Icon name="download" />
-              </button>
-            )}
-          </div>
-          {!item.isFile && renderTree(items, item.path)}
-        </div>
-      ));
-  };
 
   // Apply syntax highlighting
   useEffect(() => {
@@ -352,31 +257,51 @@ function FilesTab({ artifacts }) {
 
   return (
     <>
+      <div className="files-header">
+        <span className="files-title">Files</span>
+        {artifacts.length > 0 && (
+          <button 
+            className="download-all-btn"
+            onClick={() => downloadAllFiles(artifacts)}
+          >
+            ↓ Download All
+          </button>
+        )}
+      </div>
       <div className="filetree scroll">
-        {renderTree(tree)}
+        {artifacts.map((artifact, index) => (
+          <div 
+            key={index}
+            className="file-item"
+            onClick={() => handleFileClick(artifact)}
+            style={{
+              background: selectedFile === artifact.filepath ? 'rgba(255,255,255,0.06)' : 'transparent'
+            }}
+          >
+            <span className="file-icon">📄</span>
+            <span className="file-name">{getDisplayPath(artifact.filepath)}</span>
+            <button 
+              className="file-download-btn"
+              onClick={(e) => {
+                e.stopPropagation();
+                console.log("[Download clicked]", artifact.filepath);
+                downloadFile(artifact.filepath, artifact.content);
+              }}
+              title="Download file"
+            >
+              ↓
+            </button>
+          </div>
+        ))}
       </div>
       <div className="fileview">
         <div className="fileview-head">
           <span className="fp">
-            {selectedFile ? (
-              <>
-                <span className="dir">{selectedFile.substring(0, selectedFile.lastIndexOf('/') + 1)}</span>
-                {selectedFile.split('/').pop()}
-              </>
-            ) : 'Select a file'}
+            {selectedFile ? getDisplayPath(selectedFile) : 'Select a file'}
           </span>
           {selectedFile && language ? (
             <span className="badge-mod" style={{ marginLeft: '8px' }}>{language}</span>
           ) : null}
-          {artifacts && artifacts.length > 0 && (
-            <button 
-              className="download-all-btn"
-              onClick={() => downloadAllFiles(artifacts)}
-              title="Download all files as zip"
-            >
-              <Icon name="download" /> Download All
-            </button>
-          )}
         </div>
         <div className="fileview-body scroll">
           {selectedFile ? (
