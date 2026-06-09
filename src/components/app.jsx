@@ -245,7 +245,9 @@ export default function App() {
         setInsights(taskData.insights);
       }
       if (taskData.artifacts) {
-        setArtifacts(taskData.artifacts);
+        setArtifacts(typeof taskData.artifacts === 'string' 
+          ? JSON.parse(taskData.artifacts) 
+          : taskData.artifacts);
       }
       // Check if task is active (not completed)
       const hasCompleteEvent = taskData.events?.some(e => e.event_type === 'task_complete');

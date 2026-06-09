@@ -344,11 +344,103 @@ function FilesTab({ artifacts }) {
   );
 }
 
-function ArtifactsTab() {
+function getFileIcon(language) {
+  const icons = {
+    python: '🐍',
+    javascript: '📜',
+    typescript: '📘',
+    html: '🌐',
+    css: '🎨',
+    json: '📋',
+    markdown: '📝',
+    bash: '⚡',
+    text: '📄'
+  };
+  return icons[language] || '📄';
+}
+
+function ArtifactsTab({ artifacts }) {
+  // Get display path - strip workspace prefixes
+  function getDisplayPath(filepath) {
+    if (!filepath) return '';
+    const parts = filepath.split('/');
+    const workspaceIdx = parts.indexOf('workspace');
+    
+    if (workspaceIdx !== -1 && parts.length > workspaceIdx + 2) {
+      // workspace/{task_id}/file -> file
+      return parts.slice(workspaceIdx + 2).join('/');
+    }
+    
+    const trajIdx = parts.indexOf('trajectory-0');
+    if (trajIdx !== -1 && parts.length > trajIdx + 1) {
+      // trajectory-0/workspace/{task_id}/file -> file
+      const afterTraj = parts.slice(trajIdx + 1);
+      const wsIdx = afterTraj.indexOf('workspace');
+      if (wsIdx !== -1 && afterTraj.length > wsIdx + 2) {
+        return afterTraj.slice(wsIdx + 2).join('/');
+      }
+      // trajectory-0/file -> file
+      return afterTraj.join('/');
+    }
+    
+    // Fallback - just return the filename
+    return parts[parts.length - 1];
+  }
+
+  // Download single file
+  function downloadFile(filepath, content) {
+    try {
+      const filename = getDisplayPath(filepath).split("/").pop();
+      const blob = new Blob([content], {type: "text/plain;charset=utf-8"});
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      setTimeout(() => URL.revokeObjectURL(url), 100);
+    } catch(e) {
+      console.error("Download failed:", e);
+    }
+  }
+
+  if (!artifacts || artifacts.length === 0) {
+    return (
+      <div className="empty-state">
+        <div className="empty-icon">📦</div>
+        <p>No artifacts yet</p>
+        <span>Files created by the agent will appear here</span>
+      </div>
+    );
+  }
+  
   return (
-    <div className="empty-state">
-      <Icon name="fileOut" size={32} />
-      <p>No artifacts generated yet</p>
+    <div className="artifacts-panel">
+      {artifacts.map((artifact, i) => (
+        <div key={i} className="artifact-card">
+          <div className="artifact-header">
+            <span className="artifact-icon">
+              {getFileIcon(artifact.language)}
+            </span>
+            <span className="artifact-name">
+              {getDisplayPath(artifact.filepath)}
+            </span>
+            <span className="artifact-lang-badge">
+              {artifact.language || 'text'}
+            </span>
+            <button 
+              className="artifact-download"
+              onClick={() => downloadFile(artifact.filepath, artifact.content)}
+            >
+              ↓
+            </button>
+          </div>
+          <div className="artifact-meta">
+            {artifact.content?.split('\n').length || 0} lines
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
@@ -356,8 +448,9 @@ function ArtifactsTab() {
 function MctsTab() {
   return (
     <div className="empty-state">
-      <Icon name="gitBranch" size={32} />
-      <p>No branches explored yet</p>
+      <div className="empty-icon">🌳</div>
+      <p>MCTS Tree</p>
+      <span>Search tree visualization coming in Phase 2</span>
     </div>
   );
 }
@@ -365,8 +458,9 @@ function MctsTab() {
 function MetricsTab() {
   return (
     <div className="empty-state">
-      <Icon name="gauge" size={32} />
-      <p>No metrics yet</p>
+      <div className="empty-icon">📊</div>
+      <p>Metrics</p>
+      <span>Performance analytics coming in Phase 2</span>
     </div>
   );
 }
@@ -395,7 +489,7 @@ export function RightPanel({ artifacts }) {
       </div>
       <div className="right-body">
         {tab === 'files' ? <FilesTab artifacts={artifacts} /> :
-         tab === 'artifacts' ? <ArtifactsTab /> :
+         tab === 'artifacts' ? <ArtifactsTab artifacts={artifacts} /> :
          tab === 'mcts' ? <MctsTab /> :
          <MetricsTab />}
       </div>

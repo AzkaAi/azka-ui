@@ -1147,6 +1147,109 @@ input.repo-input { font-family: var(--mono); font-size: 12px; }
   to { opacity: 1; transform: translateY(0); }
 }
 
+/* ---- ARTIFACTS PANEL ---- */
+.artifacts-panel {
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.artifact-card {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 8px;
+  padding: 12px 14px;
+}
+
+.artifact-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.artifact-icon {
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.artifact-name {
+  flex: 1;
+  font-size: 13px;
+  color: #e5e7eb;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.artifact-lang-badge {
+  font-size: 10px;
+  padding: 2px 6px;
+  background: rgba(99,102,241,0.2);
+  border: 1px solid rgba(99,102,241,0.3);
+  border-radius: 4px;
+  color: #a5b4fc;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  flex-shrink: 0;
+}
+
+.artifact-download {
+  width: 24px;
+  height: 24px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 4px;
+  color: #9ca3af;
+  cursor: pointer;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.artifact-download:hover {
+  background: rgba(255,255,255,0.1);
+  color: white;
+}
+
+.artifact-meta {
+  font-size: 11px;
+  color: #6b7280;
+  margin-top: 4px;
+  padding-left: 22px;
+}
+
+/* ---- EMPTY STATE ---- */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  gap: 8px;
+  color: #6b7280;
+}
+
+.empty-state .empty-icon {
+  font-size: 32px;
+  margin-bottom: 4px;
+}
+
+.empty-state p {
+  font-size: 14px;
+  font-weight: 500;
+  color: #9ca3af;
+  margin: 0;
+}
+
+.empty-state span {
+  font-size: 12px;
+  color: #6b7280;
+  text-align: center;
+}
+
 /* Emoji icon support */
 .card-ico.emoji {
   font-size: 14px;
