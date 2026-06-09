@@ -144,7 +144,7 @@ export default function App() {
       }
       
       // Set selected task immediately
-      setSelectedId(taskId);
+      setCurrentTaskId(taskId);
       
       // Clear previous events
       setEvents([]);
@@ -456,7 +456,9 @@ export default function App() {
   function handleNewTask() {
     setSelectedTask(null);
     setChatInput('');
-    setSelectedId(null);
+    setCurrentTaskId(null);
+    setEvents([]);
+    setArtifacts([]);
   }
   
   async function handleChatSubmit() {

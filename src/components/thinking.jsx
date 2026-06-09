@@ -4,8 +4,8 @@ import React from 'react';
 function cleanThought(text) {
   if (!text) return '';
   return text
-    .replace(/\.?undefined\s*$/gi, '')
-    .replace(/undefined/gi, '')
+    .replace(/\.undefined\s*$/g, '')
+    .replace(/undefined\s*$/g, '')
     .trim();
 }
 
