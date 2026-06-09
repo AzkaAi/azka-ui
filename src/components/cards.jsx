@@ -329,6 +329,7 @@ function EditCard({ ev }) {
 // 4 · Run Command -------------------------------------------
 function RunCard({ ev }) {
   console.log("[RunCard]", JSON.stringify(ev, null, 2));
+  console.log("[Command debug]", JSON.stringify(ev?.action?.tool_args));
   
   const command = (() => {
     const cmd = ev?.action?.tool_args?.command;

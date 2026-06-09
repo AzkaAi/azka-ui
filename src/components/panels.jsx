@@ -177,9 +177,13 @@ function FilesTab({ artifacts }) {
     const parts = filepath.split('/');
     const workspaceIdx = parts.indexOf('workspace');
     if (workspaceIdx !== -1 && parts.length > workspaceIdx + 2) {
-      return parts.slice(workspaceIdx + 2).join('/');
+      const result = parts.slice(workspaceIdx + 2).join('/');
+      console.log("[FilesTab getDisplayPath]", filepath, "->", result);
+      return result;
     }
-    return parts[parts.length - 1];
+    const result = parts[parts.length - 1];
+    console.log("[FilesTab getDisplayPath fallback]", filepath, "->", result);
+    return result;
   }
 
   // Download single file
@@ -386,9 +390,13 @@ function ArtifactsTab({ artifacts }) {
     const parts = filepath.split('/');
     const workspaceIdx = parts.indexOf('workspace');
     if (workspaceIdx !== -1 && parts.length > workspaceIdx + 2) {
-      return parts.slice(workspaceIdx + 2).join('/');
+      const result = parts.slice(workspaceIdx + 2).join('/');
+      console.log("[ArtifactsTab getDisplayPath]", filepath, "->", result);
+      return result;
     }
-    return parts[parts.length - 1];
+    const result = parts[parts.length - 1];
+    console.log("[ArtifactsTab getDisplayPath fallback]", filepath, "->", result);
+    return result;
   }
 
   // Download single file
