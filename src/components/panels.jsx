@@ -181,6 +181,16 @@ function FilesTab({ artifacts }) {
       console.log("[FilesTab getDisplayPath]", filepath, "->", result);
       return result;
     }
+    const trajIdx = parts.indexOf('trajectory-0');
+    if (trajIdx !== -1) {
+      const rest = parts.slice(trajIdx + 1);
+      const wsIdx = rest.indexOf('workspace');
+      if (wsIdx !== -1 && rest.length > wsIdx + 2) {
+        const result = rest.slice(wsIdx + 2).join('/');
+        console.log("[FilesTab getDisplayPath traj]", filepath, "->", result);
+        return result;
+      }
+    }
     const result = parts[parts.length - 1];
     console.log("[FilesTab getDisplayPath fallback]", filepath, "->", result);
     return result;
@@ -393,6 +403,16 @@ function ArtifactsTab({ artifacts }) {
       const result = parts.slice(workspaceIdx + 2).join('/');
       console.log("[ArtifactsTab getDisplayPath]", filepath, "->", result);
       return result;
+    }
+    const trajIdx = parts.indexOf('trajectory-0');
+    if (trajIdx !== -1) {
+      const rest = parts.slice(trajIdx + 1);
+      const wsIdx = rest.indexOf('workspace');
+      if (wsIdx !== -1 && rest.length > wsIdx + 2) {
+        const result = rest.slice(wsIdx + 2).join('/');
+        console.log("[ArtifactsTab getDisplayPath traj]", filepath, "->", result);
+        return result;
+      }
     }
     const result = parts[parts.length - 1];
     console.log("[ArtifactsTab getDisplayPath fallback]", filepath, "->", result);
