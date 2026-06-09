@@ -7,6 +7,7 @@ import { startTask, getTasks, connectWebSocket, cancelTask, getTaskEvents, switc
 import { mapBackendEventToUI } from '../api/eventMapper.js';
 import { pairEvents } from '../utils/eventPairing.js';
 import { useFaviconStatus } from '../hooks/useFaviconStatus.js';
+import { normalizePath } from '../utils/pathUtils.js';
 
 function CenterFeed({ events, insights, onOpenArtifact, isLive = false, currentTaskId }) {
   const feedRef = useRef(null);
@@ -185,7 +186,7 @@ export default function App() {
         
         // Handle task_complete event to extract artifacts
         if (data.event_type === 'task_complete' && data.artifacts) {
-          setArtifacts(data.artifacts);
+          setArtifacts(data.artifacts.map(a => ({ ...a, filepath: normalizePath(a.filepath) })));
           setTaskStatus('complete');
           // Update task status in left panel
           console.log("[Task complete] Updating task status for:", taskId);
@@ -264,9 +265,10 @@ export default function App() {
         setInsights(taskData.insights);
       }
       if (taskData.artifacts) {
-        setArtifacts(typeof taskData.artifacts === 'string' 
+        const arts = typeof taskData.artifacts === 'string' 
           ? JSON.parse(taskData.artifacts) 
-          : taskData.artifacts);
+          : taskData.artifacts;
+        setArtifacts(arts.map(a => ({ ...a, filepath: normalizePath(a.filepath) })));
       }
       // Check if task is active (not completed)
       const hasCompleteEvent = taskData.events?.some(e => e.event_type === 'task_complete');
@@ -325,11 +327,12 @@ export default function App() {
           const content = data.action?.tool_args?.content || '';
           
           if (filepath) {
+            const normalizedPath = normalizePath(filepath);
             setArtifacts(prev => {
-              const exists = prev.some(a => a.filepath === filepath);
+              const exists = prev.some(a => a.filepath === normalizedPath);
               if (exists) return prev;
               return [...prev, {
-                filepath,
+                filepath: normalizedPath,
                 content,
                 language: detectLanguage(filepath)
               }];
@@ -342,8 +345,9 @@ export default function App() {
           const newContent = data.action?.tool_args?.new_string;
           
           if (filepath && newContent) {
+            const normalizedPath = normalizePath(filepath);
             setArtifacts(prev => prev.map(a => 
-              a.filepath === filepath 
+              a.filepath === normalizedPath 
                 ? {...a, content: a.content.replace(
                     data.action.tool_args.old_string, 
                     newContent
@@ -373,7 +377,7 @@ export default function App() {
       
       // Handle task_complete event to extract artifacts
       if (data.event_type === 'task_complete' && data.artifacts) {
-        setArtifacts(data.artifacts);
+        setArtifacts(data.artifacts.map(a => ({ ...a, filepath: normalizePath(a.filepath) })));
         setTaskStatus('complete');
         setIsLive(false); // Task is no longer live
         // Update task status in left panel
@@ -404,7 +408,7 @@ export default function App() {
             const arts = typeof data.artifacts === 'string'
               ? JSON.parse(data.artifacts)
               : (data.artifacts || []);
-            if (arts.length > 0) setArtifacts(arts);
+            if (arts.length > 0) setArtifacts(arts.map(a => ({ ...a, filepath: normalizePath(a.filepath) })));
           })
           .catch(e => console.log('Failed to load artifacts:', e));
       }

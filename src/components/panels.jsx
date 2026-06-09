@@ -170,36 +170,11 @@ function FilesTab({ artifacts }) {
   const [selectedFile, setSelectedFile] = useState(null);
   const [fileContent, setFileContent] = useState('');
   const [language, setLanguage] = useState('');
-  
-  // Get display path - strip workspace prefixes
-  function getDisplayPath(filepath) {
-    if (!filepath) return '';
-    const parts = filepath.split('/');
-    const workspaceIdx = parts.indexOf('workspace');
-    if (workspaceIdx !== -1 && parts.length > workspaceIdx + 2) {
-      const result = parts.slice(workspaceIdx + 2).join('/');
-      console.log("[FilesTab getDisplayPath]", filepath, "->", result);
-      return result;
-    }
-    const trajIdx = parts.indexOf('trajectory-0');
-    if (trajIdx !== -1) {
-      const rest = parts.slice(trajIdx + 1);
-      const wsIdx = rest.indexOf('workspace');
-      if (wsIdx !== -1 && rest.length > wsIdx + 2) {
-        const result = rest.slice(wsIdx + 2).join('/');
-        console.log("[FilesTab getDisplayPath traj]", filepath, "->", result);
-        return result;
-      }
-    }
-    const result = parts[parts.length - 1];
-    console.log("[FilesTab getDisplayPath fallback]", filepath, "->", result);
-    return result;
-  }
 
   // Download single file
   function downloadFile(filepath, content) {
     try {
-      const filename = getDisplayPath(filepath).split("/").pop();
+      const filename = filepath.split("/").pop();
       const blob = new Blob([content], {type: "text/plain;charset=utf-8"});
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
@@ -225,7 +200,7 @@ function FilesTab({ artifacts }) {
     
     const zip = new JSZip();
     artifacts.forEach(artifact => {
-      const filename = getDisplayPath(artifact.filepath);
+      const filename = artifact.filepath;
       zip.file(filename, artifact.content);
     });
     
@@ -309,7 +284,7 @@ function FilesTab({ artifacts }) {
             }}
           >
             <span className="file-icon">📄</span>
-            <span className="file-name">{getDisplayPath(artifact.filepath)}</span>
+            <span className="file-name">{artifact.filepath}</span>
             <button 
               className="file-download-btn"
               onClick={(e) => {
@@ -329,7 +304,7 @@ function FilesTab({ artifacts }) {
           isImage ? (
             <div className="file-viewer">
               <div className="file-viewer-header">
-                <span className="file-viewer-path">{getDisplayPath(selectedFile)}</span>
+                <span className="file-viewer-path">{selectedFile}</span>
                 <button 
                   className="file-download-btn-inline"
                   onClick={() => downloadFile(selectedFile, fileContent)}
@@ -340,7 +315,7 @@ function FilesTab({ artifacts }) {
               <div style={{ padding: '16px', display: 'flex', justifyContent: 'center' }}>
                 <img 
                   src={fileContent.startsWith('data:') ? fileContent : `data:image/png;base64,${fileContent}`}
-                  alt={getDisplayPath(selectedFile)}
+                  alt={selectedFile}
                   style={{ maxWidth: '100%', height: 'auto' }}
                   onError={(e) => {
                     console.error('Image load error:', e);
@@ -352,7 +327,7 @@ function FilesTab({ artifacts }) {
           ) : (
             <div className="file-viewer">
               <div className="file-viewer-header">
-                <span className="file-viewer-path">{getDisplayPath(selectedFile)}</span>
+                <span className="file-viewer-path">{selectedFile}</span>
                 <button 
                   className="file-download-btn-inline"
                   onClick={() => downloadFile(selectedFile, fileContent)}
@@ -394,35 +369,10 @@ function getFileIcon(language) {
 }
 
 function ArtifactsTab({ artifacts }) {
-  // Get display path - strip workspace prefixes
-  function getDisplayPath(filepath) {
-    if (!filepath) return '';
-    const parts = filepath.split('/');
-    const workspaceIdx = parts.indexOf('workspace');
-    if (workspaceIdx !== -1 && parts.length > workspaceIdx + 2) {
-      const result = parts.slice(workspaceIdx + 2).join('/');
-      console.log("[ArtifactsTab getDisplayPath]", filepath, "->", result);
-      return result;
-    }
-    const trajIdx = parts.indexOf('trajectory-0');
-    if (trajIdx !== -1) {
-      const rest = parts.slice(trajIdx + 1);
-      const wsIdx = rest.indexOf('workspace');
-      if (wsIdx !== -1 && rest.length > wsIdx + 2) {
-        const result = rest.slice(wsIdx + 2).join('/');
-        console.log("[ArtifactsTab getDisplayPath traj]", filepath, "->", result);
-        return result;
-      }
-    }
-    const result = parts[parts.length - 1];
-    console.log("[ArtifactsTab getDisplayPath fallback]", filepath, "->", result);
-    return result;
-  }
-
   // Download single file
   function downloadFile(filepath, content) {
     try {
-      const filename = getDisplayPath(filepath).split("/").pop();
+      const filename = filepath.split("/").pop();
       const blob = new Blob([content], {type: "text/plain;charset=utf-8"});
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
@@ -456,7 +406,7 @@ function ArtifactsTab({ artifacts }) {
               {getFileIcon(artifact.language)}
             </span>
             <span className="artifact-name">
-              {getDisplayPath(artifact.filepath)}
+              {artifact.filepath}
             </span>
             <span className="artifact-lang-badge">
               {artifact.language || 'text'}
