@@ -34,9 +34,9 @@ export function renderEvent(event, taskId) {
   // Try to use existing card types first
   switch (eventType) {
     case 'clarification':
-      return <ClarificationCard key={event.seq_id || Math.random()} event={event.data || event} taskId={taskId} />;
+      return <ClarificationCard key="clarification-stable" event={event.data || event} taskId={taskId} onSubmitted={() => {}} />;
     case 'clarification_required':
-      return <ClarificationCard key={event.seq_id || Math.random()} event={event} taskId={taskId} />;
+      return <ClarificationCard key="clarification-stable" event={event} taskId={taskId} onSubmitted={() => {}} />;
     case 'thinking':   return <ThinkingCard key={event.seq_id || Math.random()} ev={{...event, text: thought || 'Thinking...'}} />;
     case 'view':       return <ViewCard key={event.seq_id || Math.random()} ev={event} />;
     case 'edit':       return <EditCard key={event.seq_id || Math.random()} ev={event} />;
@@ -212,25 +212,45 @@ function parseInsights(text) {
 }
 
 // Clarification Card for agent questions
-function ClarificationCard({ event, taskId }) {
-  const [answer, setAnswer] = React.useState('');
+function ClarificationCard({ event, taskId, onSubmitted }) {
+  // Use useRef to prevent losing input on re-render
+  const answerRef = React.useRef('');
+  const [displayAnswer, setDisplayAnswer] = React.useState('');
   const [submitted, setSubmitted] = React.useState(false);
   
-  const questions = event.questions || event.observation?.stdout || '';
+  function handleChange(e) {
+    answerRef.current = e.target.value;
+    setDisplayAnswer(e.target.value);
+  }
   
   async function handleSubmit() {
-    if (!answer.trim()) return;
+    const answer = answerRef.current.trim();
+    if (!answer) return;
+    
+    setSubmitted(true);
     
     await fetch(
       `https://api.azkaai.com/tasks/${taskId}/respond`,
       {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({answer: answer.trim()})
+        body: JSON.stringify({answer})
       }
     );
     
-    setSubmitted(true);
+    if (onSubmitted) onSubmitted();
+  }
+  
+  const questions = event?.questions || 
+                    event?.observation?.stdout || 
+                    event?.data?.questions || '';
+  
+  if (submitted) {
+    return (
+      <div className="clarification-submitted">
+        ✓ Got it. Starting to build now...
+      </div>
+    );
   }
   
   return (
@@ -244,28 +264,23 @@ function ClarificationCard({ event, taskId }) {
       <div className="clarification-questions">
         {questions}
       </div>
-      {!submitted ? (
-        <div className="clarification-input-area">
-          <textarea
-            className="clarification-textarea"
-            placeholder="Type your answers here..."
-            value={answer}
-            onChange={e => setAnswer(e.target.value)}
-            rows={5}
-          />
-          <button 
-            className="clarification-submit"
-            onClick={handleSubmit}
-            disabled={!answer.trim()}
-          >
-            ✓ Confirm and Start Building
-          </button>
-        </div>
-      ) : (
-        <div className="clarification-submitted">
-          ✓ Got it. Starting to build now...
-        </div>
-      )}
+      <div className="clarification-input-area">
+        <textarea
+          className="clarification-textarea"
+          placeholder="Type your answers here..."
+          value={displayAnswer}
+          onChange={handleChange}
+          rows={6}
+          autoFocus
+        />
+        <button
+          className="clarification-submit"
+          onClick={handleSubmit}
+          disabled={!displayAnswer.trim()}
+        >
+          ✓ Confirm and Start Building
+        </button>
+      </div>
     </div>
   );
 }
