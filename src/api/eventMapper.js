@@ -151,6 +151,12 @@ export function mapBackendEventToUI(backendEvent) {
         time: '0m 0s',
       };
     
+    case 'clarification_required':
+      return {
+        type: 'clarification',
+        data: backendEvent
+      };
+    
     default:
       // For unknown event types, create a generic observation card
       return {

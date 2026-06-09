@@ -33,6 +33,8 @@ export function renderEvent(event, taskId) {
   
   // Try to use existing card types first
   switch (eventType) {
+    case 'clarification':
+      return <ClarificationCard key={event.seq_id || Math.random()} event={event.data || event} taskId={taskId} />;
     case 'clarification_required':
       return <ClarificationCard key={event.seq_id || Math.random()} event={event} taskId={taskId} />;
     case 'thinking':   return <ThinkingCard key={event.seq_id || Math.random()} ev={{...event, text: thought || 'Thinking...'}} />;
