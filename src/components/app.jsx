@@ -69,7 +69,7 @@ function CenterFeed({ events, insights, onOpenArtifact, isLive = false }) {
                 action={pair.action}
                 isLatest={index === pairs.length - 1}
                 isLive={isLive}
-                taskId={selectedId}
+                taskId={currentTaskId}
               />
             ))
           )}
@@ -89,7 +89,7 @@ function CenterFeed({ events, insights, onOpenArtifact, isLive = false }) {
 export default function App() {
   const [tasks, setTasks] = useState([]);
   const [events, setEvents] = useState([]);
-  const [selectedId, setSelectedId] = useState(null);
+  const [currentTaskId, setCurrentTaskId] = useState(null);
   const [selectedTask, setSelectedTask] = useState(null);
   const [chatInput, setChatInput] = useState('');
   const [wsConnection, setWsConnection] = useState(null);
@@ -231,7 +231,7 @@ export default function App() {
   async function handleSelectTask(taskId, taskObj = null) {
     console.log("[handleSelectTask] called with taskId:", taskId);
     // Don't clear events if we're already on this task
-    if (selectedId === taskId) {
+    if (currentTaskId === taskId) {
       console.log("[handleSelectTask] Already on this task, skipping");
       return;
     }
@@ -463,10 +463,10 @@ export default function App() {
 
   return (
     <div className="app">
-      <Header selectedId={selectedId} onCancel={handleCancelTask} />
+      <Header currentTaskId={currentTaskId} onCancel={handleCancelTask} />
       <LeftPanel 
         tasks={tasks} 
-        selectedId={selectedId} 
+        currentTaskId={currentTaskId} 
         selectedTask={selectedTask}
         chatInput={chatInput}
         onSelect={handleSelectTask} 

@@ -52,15 +52,17 @@ export function mapBackendEventToUI(backendEvent) {
         };
       } else {
         // Default to run command
+        const cmd = action?.tool_args?.command;
+        const commandStr = Array.isArray(cmd) ? cmd.join(' ') : String(cmd || 'command');
         return {
           type: 'run',
           open: true,
           thought: thought,
-          cmd: action?.tool_args?.command?.join(' ') || action?.command,
+          cmd: commandStr,
           exit: observation?.exit_code || (observation?.success ? 0 : 1),
           duration: '1.0s',
           lines: [
-            { c: 'cmd', html: `<span class="p">~/orchestrator</span> $ ${action?.tool_args?.command?.join(' ') || action?.command}` },
+            { c: 'cmd', html: `<span class="p">~/orchestrator</span> $ ${commandStr}` },
             { c: 'o', html: observation?.stdout || observation?.stderr || 'Command executed' }
           ],
         };
@@ -90,14 +92,16 @@ export function mapBackendEventToUI(backendEvent) {
     case 'run':
       const stdout = observation?.stdout || observation?.result || '';
       const stderr = observation?.stderr || observation?.error || '';
+      const cmd = action.tool_args?.command;
+      const commandStr = Array.isArray(cmd) ? cmd.join(' ') : String(cmd || 'command');
       return {
         type: 'run',
         open: true,
-        cmd: action.tool_args?.command?.join(' ') || action.command,
+        cmd: commandStr,
         exit: observation.exit_code || (observation.success ? 0 : 1),
         duration: '1.0s',
         lines: [
-          { c: 'cmd', html: `<span class="p">~/orchestrator</span> $ ${action.tool_args?.command?.join(' ') || action.command}` },
+          { c: 'cmd', html: `<span class="p">~/orchestrator</span> $ ${commandStr}` },
           { c: 'o', html: stdout || stderr || 'Command executed' }
         ],
       };

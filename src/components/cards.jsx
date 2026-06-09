@@ -330,11 +330,12 @@ function EditCard({ ev }) {
 function RunCard({ ev }) {
   console.log("[RunCard]", JSON.stringify(ev, null, 2));
   
-  const command = ev?.action?.tool_args?.command?.join(' ') || 
-                  ev?.action?.command ||
-                  ev?.cmd ||
-                  ev?.command ||
-                  'command';
+  const command = (() => {
+    const cmd = ev?.action?.tool_args?.command;
+    if (!cmd) return 'command';
+    if (Array.isArray(cmd)) return cmd.join(' ');
+    return String(cmd);
+  })();
   const stdout = ev?.observation?.stdout || ev?.result || '';
   const exitCode = ev?.observation?.exit_code ?? ev?.exit ?? 0;
   const [displayedOutput, setDisplayedOutput] = React.useState('');

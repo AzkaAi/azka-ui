@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Icon } from './icons.jsx';
 
 /* ---------- HEADER ---------- */
-export function Header({ selectedId, onCancel }) {
+export function Header({ currentTaskId, onCancel }) {
   return (
     <header className="header">
       <div className="brand">
@@ -11,8 +11,8 @@ export function Header({ selectedId, onCancel }) {
           AZKA<span className="dot">.</span><span className="ai">AI</span>
         </div>
       </div>
-      {selectedId && onCancel ? (
-        <button className="stop-btn" onClick={() => onCancel(selectedId)} title="Stop current task">
+      {currentTaskId && onCancel ? (
+        <button className="stop-btn" onClick={() => onCancel(currentTaskId)} title="Stop current task">
           <Icon name="x" /> Stop Task
         </button>
       ) : null}
@@ -71,7 +71,7 @@ function TaskRow({ task, selected, onSelect, onCancel, onTaskUpdate }) {
   );
 }
 
-export function LeftPanel({ tasks, selectedId, selectedTask, chatInput, onSelect, onStartTask, onCancel, onTaskUpdate, onChatSubmit, onNewTask, onChatInputChange }) {
+export function LeftPanel({ tasks, currentTaskId, selectedTask, chatInput, onSelect, onStartTask, onCancel, onTaskUpdate, onChatSubmit, onNewTask, onChatInputChange }) {
   const [taskInput, setTaskInput] = useState('');
   
   async function handleSubmit() {
@@ -153,7 +153,7 @@ export function LeftPanel({ tasks, selectedId, selectedTask, chatInput, onSelect
             <TaskRow
               key={t.task_id || t.id}
               task={t}
-              selected={(t.task_id || t.id) === selectedId}
+              selected={(t.task_id || t.id) === currentTaskId}
               onSelect={() => onSelect(t.task_id || t.id, t)}
               onCancel={onCancel}
               onTaskUpdate={onTaskUpdate}
