@@ -8,7 +8,12 @@ export function mapBackendEventToUI(backendEvent) {
   const observation = backendEvent.observation || backendEvent;
   
   // Extract thought from action if available (for pairing logic)
-  const thought = action?.thought || action?.tool_args?.thought || '';
+  let thought = action?.thought || action?.tool_args?.thought || '';
+  
+  // Clean up thought - remove "undefined" suffix if present
+  if (thought && thought.endsWith('undefined')) {
+    thought = thought.slice(0, -9).trim();
+  }
   
   switch (event_type) {
     case 'tool_call':
