@@ -242,12 +242,12 @@ export default function App() {
     }
     
     console.log("[handleSelectTask] Clearing events and switching to task");
-    setSelectedId(taskId);
+    setCurrentTaskId(taskId);
     // Clear events when switching tasks
     setEvents([]);
     setTurnCount(0);
     setTotalCost(0);
-    setArtifacts(null);
+    setArtifacts([]);
     setInsights(null);
     
     // Close existing WebSocket
@@ -356,7 +356,13 @@ export default function App() {
       
       const uiEvent = mapBackendEventToUI(data);
       console.log("[Mapped to UI event in switchToTask]", uiEvent.type, uiEvent);
-      setEvents(prev => [...prev, uiEvent]);
+      setEvents(prev => {
+        const exists = prev.some(e => e.seq_id === data.seq_id);
+        if (exists) return prev;
+        return [...prev, uiEvent].sort((a,b) => 
+          (a.seq_id||0) - (b.seq_id||0)
+        );
+      });
       
       // Update metadata from event
       if (data.metadata) {
@@ -387,6 +393,20 @@ export default function App() {
         });
         // Refresh task list from backend
         loadTasks();
+      }
+      
+      // Also load artifacts from task_complete event or separately
+      if (data.event_type === 'task_complete' || data.action?.tool_name === 'finish') {
+        // Load artifacts from task data
+        fetch(`https://api.azkaai.com/tasks/${taskId}`)
+          .then(r => r.json())
+          .then(data => {
+            const arts = typeof data.artifacts === 'string'
+              ? JSON.parse(data.artifacts)
+              : (data.artifacts || []);
+            if (arts.length > 0) setArtifacts(arts);
+          })
+          .catch(e => console.log('Failed to load artifacts:', e));
       }
     });
     
