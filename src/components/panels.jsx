@@ -136,6 +136,44 @@ function FilesTab({ artifacts }) {
   
   const monacoEditor = useMonacoEditor(containerRef);
 
+  // Download single file
+  function downloadFile(filepath, content) {
+    const filename = filepath.split("/").pop();
+    const blob = new Blob([content], {type: "text/plain"});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  // Download all files as zip
+  async function downloadAllFiles(artifacts) {
+    if (!artifacts || artifacts.length === 0) return;
+    
+    const zip = new JSZip();
+    artifacts.forEach(artifact => {
+      let filename = artifact.filepath;
+      const trajectoryMarker = "trajectory-0/";
+      const trajectoryIdx = filename.indexOf(trajectoryMarker);
+      if (trajectoryIdx !== -1) {
+        filename = filename.substring(trajectoryIdx + trajectoryMarker.length);
+      } else {
+        filename = filename.replace(/^\/workspace\/[^/]+\//, '');
+      }
+      zip.file(filename, artifact.content);
+    });
+    
+    const blob = await zip.generateAsync({type: "blob"});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "azka_output.zip";
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   useEffect(() => {
     if (!artifacts || artifacts.length === 0) return;
 
@@ -143,8 +181,17 @@ function FilesTab({ artifacts }) {
     const treeMap = new Map();
     
     artifacts.forEach(artifact => {
-      // Strip /workspace/{task_id}/ prefix
-      const cleanPath = artifact.filepath.replace(/^\/workspace\/[^/]+\//, '');
+      // Strip workspace prefix - handle both trajectory-0/ and /workspace/{task_id}/ formats
+      let cleanPath = artifact.filepath;
+      const trajectoryMarker = "trajectory-0/";
+      const trajectoryIdx = cleanPath.indexOf(trajectoryMarker);
+      if (trajectoryIdx !== -1) {
+        cleanPath = cleanPath.substring(trajectoryIdx + trajectoryMarker.length);
+      } else {
+        // Fallback: strip /workspace/{task_id}/ prefix
+        cleanPath = cleanPath.replace(/^\/workspace\/[^/]+\//, '');
+      }
+      
       const parts = cleanPath.split('/');
       
       let currentPath = '';
@@ -209,7 +256,7 @@ function FilesTab({ artifacts }) {
       setLanguage(item.language);
       setIsNewFile(false);
       
-      // Animate file view if Monaco is ready
+      // Load file content in Monaco editor
       if (monacoEditor.isReady) {
         monacoEditor.setValue(item.content);
         monacoEditor.setLanguage(item.language);
@@ -252,6 +299,18 @@ function FilesTab({ artifacts }) {
               <Icon name={item.isFile ? 'fileCode' : 'folder'} />
             </span>
             <span className="nm">{item.name}</span>
+            {item.isFile && (
+              <button 
+                className="download-btn"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  downloadFile(item.path, item.content);
+                }}
+                title="Download file"
+              >
+                <Icon name="download" />
+              </button>
+            )}
           </div>
           {!item.isFile && renderTree(items, item.path)}
         </div>
@@ -296,6 +355,15 @@ function FilesTab({ artifacts }) {
           {selectedFile && language ? (
             <span className="badge-mod" style={{ marginLeft: '8px' }}>{language}</span>
           ) : null}
+          {artifacts && artifacts.length > 0 && (
+            <button 
+              className="download-all-btn"
+              onClick={() => downloadAllFiles(artifacts)}
+              title="Download all files as zip"
+            >
+              <Icon name="download" /> Download All
+            </button>
+          )}
         </div>
         <div className="fileview-body scroll">
           {selectedFile ? (

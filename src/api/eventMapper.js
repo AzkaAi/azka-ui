@@ -10,73 +10,69 @@ export function mapBackendEventToUI(backendEvent) {
   // Extract thought from action if available (for pairing logic)
   const thought = action?.thought || action?.tool_args?.thought || '';
   
-  // For tool_call events, map to appropriate card type and preserve thought
-  if (event_type === 'tool_call') {
-    const toolName = action?.tool_name || 'unknown';
-    
-    // Map tool names to event types and extract relevant data
-    if (toolName === 'edit_file' || toolName === 'edit') {
-      return {
-        type: 'edit',
-        open: true,
-        thought: thought, // Preserve thought for pairing
-        path: action?.tool_args?.filepath || action?.filepath,
-        result: observation?.success ? 'ok' : 'error',
-        added: 0,
-        removed: 0,
-        hunk: '@@ -1,1 +1,1 @@',
-        diff: observation?.success ? [
-          { k: 'ctx', n: '1', s: ' ', t: action?.tool_args?.new_string || action?.new_string }
-        ] : [],
-      };
-    } else if (toolName === 'view_file' || toolName === 'view') {
-      return {
-        type: 'view',
-        open: true,
-        thought: thought, // Preserve thought for pairing
-        path: action?.tool_args?.file_path || action?.file_path,
-        lang: 'py',
-        lines: '1-100',
-        code: observation?.success ? [
-          { n: 1, html: observation?.result || observation?.stdout || 'File content...' }
-        ] : [],
-      };
-    } else if (toolName === 'search') {
-      return {
-        type: 'search',
-        open: true,
-        thought: thought, // Preserve thought for pairing
-        query: action?.tool_args?.query || 'search',
-        scope: action?.tool_args?.path || '.',
-        results: observation?.results || [],
-      };
-    } else {
-      // Default to run command
-      return {
-        type: 'run',
-        open: true,
-        thought: thought, // Preserve thought for pairing
-        cmd: action?.tool_args?.command?.join(' ') || action?.command,
-        exit: observation?.exit_code || (observation?.success ? 0 : 1),
-        duration: '1.0s',
-        lines: [
-          { c: 'cmd', html: `<span class="p">~/orchestrator</span> $ ${action?.tool_args?.command?.join(' ') || action?.command}` },
-          { c: 'o', html: observation?.stdout || observation?.stderr || 'Command executed' }
-        ],
-      };
-    }
-  }
-  
-  // For thinking events, preserve the thought text for pairing
-  if (event_type === 'thinking') {
-    return {
-      type: 'thinking',
-      open: true,
-      text: action?.thought || action?.text || '',
-    };
-  }
-  
   switch (event_type) {
+    case 'tool_call':
+      // Handle tool_call events with thought preservation
+      const toolName = action?.tool_name || 'unknown';
+      
+      if (toolName === 'edit_file' || toolName === 'edit') {
+        return {
+          type: 'edit',
+          open: true,
+          thought: thought,
+          path: action?.tool_args?.filepath || action?.filepath,
+          result: observation?.success ? 'ok' : 'error',
+          added: 0,
+          removed: 0,
+          hunk: '@@ -1,1 +1,1 @@',
+          diff: observation?.success ? [
+            { k: 'ctx', n: '1', s: ' ', t: action?.tool_args?.new_string || action?.new_string }
+          ] : [],
+        };
+      } else if (toolName === 'view_file' || toolName === 'view') {
+        return {
+          type: 'view',
+          open: true,
+          thought: thought,
+          path: action?.tool_args?.file_path || action?.file_path,
+          lang: 'py',
+          lines: '1-100',
+          code: observation?.success ? [
+            { n: 1, html: observation?.result || observation?.stdout || 'File content...' }
+          ] : [],
+        };
+      } else if (toolName === 'search') {
+        return {
+          type: 'search',
+          open: true,
+          thought: thought,
+          query: action?.tool_args?.query || 'search',
+          scope: action?.tool_args?.path || '.',
+          results: observation?.results || [],
+        };
+      } else {
+        // Default to run command
+        return {
+          type: 'run',
+          open: true,
+          thought: thought,
+          cmd: action?.tool_args?.command?.join(' ') || action?.command,
+          exit: observation?.exit_code || (observation?.success ? 0 : 1),
+          duration: '1.0s',
+          lines: [
+            { c: 'cmd', html: `<span class="p">~/orchestrator</span> $ ${action?.tool_args?.command?.join(' ') || action?.command}` },
+            { c: 'o', html: observation?.stdout || observation?.stderr || 'Command executed' }
+          ],
+        };
+      }
+    
+    case 'thinking':
+      return {
+        type: 'thinking',
+        open: true,
+        text: action?.thought || action?.text || '',
+      };
+    
     case 'view_file':
     case 'view':
       return {

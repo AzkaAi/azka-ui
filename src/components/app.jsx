@@ -148,8 +148,9 @@ export default function App() {
       }
       
       const ws = connectWebSocket(taskId, (data) => {
-        console.log('WebSocket event:', data);
+        console.log("[Event received]", data.event_type, data.seq_id);
         const uiEvent = mapBackendEventToUI(data);
+        console.log("[Mapped to UI event]", uiEvent.type, uiEvent);
         setEvents(prev => [...prev, uiEvent]);
         
         // Update metadata from event
@@ -163,6 +164,12 @@ export default function App() {
         if (data.event_type === 'task_complete' && data.artifacts) {
           setArtifacts(data.artifacts);
           setTaskStatus('complete');
+          // Update task status in left panel
+          setTasks(prev => prev.map(t => 
+            (t.task_id === taskId || t.id === taskId) 
+              ? {...t, status: 'completed'} 
+              : t
+          ));
         }
       });
       
@@ -223,7 +230,9 @@ export default function App() {
     // Use switchToTask pattern for history loading and WebSocket connection
     // This is called for EVERY task click regardless of status
     switchToTask(taskId, (data) => {
+      console.log("[Event received in switchToTask]", data.event_type, data.seq_id);
       const uiEvent = mapBackendEventToUI(data);
+      console.log("[Mapped to UI event in switchToTask]", uiEvent.type, uiEvent);
       setEvents(prev => [...prev, uiEvent]);
       
       // Update metadata from event
@@ -238,6 +247,12 @@ export default function App() {
         setArtifacts(data.artifacts);
         setTaskStatus('complete');
         setIsLive(false); // Task is no longer live
+        // Update task status in left panel
+        setTasks(prev => prev.map(t => 
+          (t.task_id === taskId || t.id === taskId) 
+            ? {...t, status: 'completed'} 
+            : t
+        ));
       }
     });
   }

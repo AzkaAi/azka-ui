@@ -823,6 +823,50 @@ input.repo-input { font-family: var(--mono); font-size: 12px; }
   transform: rotate(90deg);
 }
 
+/* ---- DOWNLOAD BUTTONS ---- */
+.download-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-3);
+  cursor: pointer;
+  padding: 4px;
+  margin-left: auto;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.download-btn:hover {
+  color: var(--text);
+  background: var(--surface-2);
+}
+
+.download-all-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 6px 11px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+  font-family: var(--ui);
+  transition: background .12s, border-color .12s;
+  margin-left: auto;
+}
+
+.download-all-btn:hover {
+  background: var(--surface-3);
+  border-color: var(--text-4);
+}
+
+.download-all-btn svg {
+  width: 14px;
+  height: 14px;
+}
+
 /* ---- SPECIAL CARDS ---- */
 
 /* system interrupt */
