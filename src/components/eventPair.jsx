@@ -2,7 +2,7 @@ import React from 'react';
 import { ThinkingBubble } from './thinking.jsx';
 import { renderEvent } from './cards.jsx';
 
-export function EventPair({ thought, thoughtSeconds, action, isLatest, isLive }) {
+export function EventPair({ thought, thoughtSeconds, action, isLatest, isLive, taskId }) {
   const [thoughtCollapsed, setThoughtCollapsed] = React.useState(
     // Collapse thought if action exists and this is not the latest pair
     // or if we're loading from history (not live)
@@ -37,7 +37,7 @@ export function EventPair({ thought, thoughtSeconds, action, isLatest, isLive })
           onToggle={() => setThoughtCollapsed(prev => !prev)}
         />
       )}
-      {action && renderEvent(action)}
+      {action && renderEvent(action, taskId)}
     </div>
   );
 }

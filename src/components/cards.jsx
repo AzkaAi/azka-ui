@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Icon } from './icons.jsx';
 
 // Graceful event renderer for malformed events
-export function renderEvent(event) {
+export function renderEvent(event, taskId) {
   // Guard against malformed events
   const eventType = event?.event_type || event?.type || 'unknown';
   const toolName = event?.action?.tool_name || event?.tool_name || 'unknown';
@@ -33,6 +33,8 @@ export function renderEvent(event) {
   
   // Try to use existing card types first
   switch (eventType) {
+    case 'clarification_required':
+      return <ClarificationCard key={event.seq_id || Math.random()} event={event} taskId={taskId} />;
     case 'thinking':   return <ThinkingCard key={event.seq_id || Math.random()} ev={{...event, text: thought || 'Thinking...'}} />;
     case 'view':       return <ViewCard key={event.seq_id || Math.random()} ev={event} />;
     case 'edit':       return <EditCard key={event.seq_id || Math.random()} ev={event} />;
@@ -193,6 +195,65 @@ function parseInsights(text) {
   
   if (currentSection) sections.push(currentSection);
   return sections.filter(s => s.content.trim());
+}
+
+// Clarification Card for agent questions
+function ClarificationCard({ event, taskId }) {
+  const [answer, setAnswer] = React.useState('');
+  const [submitted, setSubmitted] = React.useState(false);
+  
+  const questions = event.questions || event.observation?.stdout || '';
+  
+  async function handleSubmit() {
+    if (!answer.trim()) return;
+    
+    await fetch(
+      `https://api.azkaai.com/tasks/${taskId}/respond`,
+      {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({answer: answer.trim()})
+      }
+    );
+    
+    setSubmitted(true);
+  }
+  
+  return (
+    <div className="clarification-card">
+      <div className="clarification-header">
+        <span className="clarification-icon">💬</span>
+        <span className="clarification-title">
+          Before I start building, I have a few questions
+        </span>
+      </div>
+      <div className="clarification-questions">
+        {questions}
+      </div>
+      {!submitted ? (
+        <div className="clarification-input-area">
+          <textarea
+            className="clarification-textarea"
+            placeholder="Type your answers here..."
+            value={answer}
+            onChange={e => setAnswer(e.target.value)}
+            rows={5}
+          />
+          <button 
+            className="clarification-submit"
+            onClick={handleSubmit}
+            disabled={!answer.trim()}
+          >
+            ✓ Confirm and Start Building
+          </button>
+        </div>
+      ) : (
+        <div className="clarification-submitted">
+          ✓ Got it. Starting to build now...
+        </div>
+      )}
+    </div>
+  );
 }
 
 // 2 · View File ---------------------------------------------

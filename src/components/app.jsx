@@ -69,6 +69,7 @@ function CenterFeed({ events, insights, onOpenArtifact, isLive = false }) {
                 action={pair.action}
                 isLatest={index === pairs.length - 1}
                 isLive={isLive}
+                taskId={selectedId}
               />
             ))
           )}
