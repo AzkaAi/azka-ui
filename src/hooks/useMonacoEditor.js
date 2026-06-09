@@ -1,14 +1,16 @@
 import { useEffect, useRef, useState } from 'react';
 
 let monacoEditor = null;
-let isMonacoLoaded = false;
 
 export function useMonacoEditor(containerRef, options = {}) {
   const [isReady, setIsReady] = useState(false);
   const [currentDecorations, setCurrentDecorations] = useState([]);
+  const editorInitialized = useRef(false);
 
   useEffect(() => {
-    if (!containerRef.current || isMonacoLoaded) return;
+    if (!containerRef.current || editorInitialized.current) return;
+
+    editorInitialized.current = true;
 
     // Configure Monaco loader
     if (typeof window !== 'undefined' && window.require) {
@@ -37,7 +39,6 @@ export function useMonacoEditor(containerRef, options = {}) {
           ...options
         });
 
-        isMonacoLoaded = true;
         setIsReady(true);
       });
     }
@@ -47,6 +48,7 @@ export function useMonacoEditor(containerRef, options = {}) {
         monacoEditor.dispose();
         monacoEditor = null;
       }
+      editorInitialized.current = false;
     };
   }, [containerRef, options]);
 

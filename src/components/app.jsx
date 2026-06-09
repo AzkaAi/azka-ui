@@ -149,6 +149,7 @@ export default function App() {
       }
       
       const ws = connectWebSocket(taskId, (data) => {
+        console.log("[RENDER CALLBACK]", data);
         console.log("[Event received]", data.event_type, data.seq_id);
         const uiEvent = mapBackendEventToUI(data);
         console.log("[Mapped to UI event]", uiEvent.type, uiEvent);
@@ -242,6 +243,7 @@ export default function App() {
     // Use switchToTask pattern for history loading and WebSocket connection
     // This is called for EVERY task click regardless of status
     switchToTask(taskId, (data) => {
+      console.log("[RENDER CALLBACK]", data);
       console.log("[Event received in switchToTask]", data.event_type, data.seq_id);
       const uiEvent = mapBackendEventToUI(data);
       console.log("[Mapped to UI event in switchToTask]", uiEvent.type, uiEvent);

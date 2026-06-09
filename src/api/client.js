@@ -74,7 +74,7 @@ export function connectWebSocket(taskId, onMessage) {
   ws.onmessage = (event) => {
     try {
       const data = JSON.parse(event.data);
-      console.log('WebSocket received:', data);
+      console.log('[RENDER CALLBACK - WebSocket]', data);
       onMessage(data);
     } catch (e) {
       console.error('Failed to parse WebSocket message:', e);
@@ -127,6 +127,7 @@ export class TaskSession {
   }
 
   processEvent(data, renderCallback) {
+    console.log("[RENDER CALLBACK - processEvent]", data);
     if (data.seq_id <= this.highestSeqId) return;
     
     // Buffer if out of order
@@ -157,7 +158,9 @@ export class TaskSession {
       const log = typeof data.event_log === 'string'
         ? JSON.parse(data.event_log)
         : (data.event_log || []);
+      console.log("[loadHistory] Found", log.length, "events in history");
       log.forEach(event => {
+        console.log("[RENDER CALLBACK - loadHistory]", event);
         this.highestSeqId = Math.max(
           this.highestSeqId, event.seq_id || 0
         );

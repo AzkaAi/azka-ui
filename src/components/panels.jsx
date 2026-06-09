@@ -30,6 +30,11 @@ function TaskRow({ task, selected, onSelect, onCancel, onTaskUpdate }) {
   const taskStatus = typeof task === 'string' ? 'active' : task.status || 'active';
   const [isCancelling, setIsCancelling] = useState(false);
   
+  // Case-insensitive status checks
+  const isActive = taskStatus?.toLowerCase() === 'active';
+  const isCompleted = taskStatus?.toLowerCase() === 'completed' || 
+                      taskStatus?.toLowerCase() === 'complete';
+  
   async function handleCancel(e) {
     e.stopPropagation();
     if (onCancel && window.confirm('Stop this task? The agent will finish its current action then stop.')) {
@@ -45,15 +50,15 @@ function TaskRow({ task, selected, onSelect, onCancel, onTaskUpdate }) {
   
   return (
     <button
-      className={`task-row ${selected ? ' sel' : ''} ${isCancelling ? 'cancelling' : ''} ${taskStatus === 'completed' ? 'completed-flash' : ''}`}
+      className={`task-row ${selected ? ' sel' : ''} ${isCancelling ? 'cancelling' : ''} ${isCompleted ? 'completed-flash' : ''}`}
       onClick={onSelect}
     >
       <div className="task-row-top">
-        <span className={`badge ${taskStatus} ${taskStatus === 'active' ? 'active-badge' : ''}`}>
+        <span className={`badge ${taskStatus} ${isActive ? 'active-badge' : ''}`}>
           <span className="bdot" /> {taskStatus}
         </span>
         <span className="spacer" />
-        {taskStatus === 'active' && onCancel ? (
+        {isActive && onCancel ? (
           <button className="cancel-btn" onClick={handleCancel} title="Stop task">
             <Icon name="x" />
           </button>
@@ -170,7 +175,12 @@ function FilesTab({ artifacts }) {
 
   // Download all files as zip
   async function downloadAllFiles(artifacts) {
-    if (!artifacts || artifacts.length === 0) return;
+    if (typeof JSZip === 'undefined') {
+      console.error('JSZip not loaded');
+      // Fallback: download files individually
+      artifacts.forEach(a => downloadFile(a.filepath, a.content));
+      return;
+    }
     
     const zip = new JSZip();
     artifacts.forEach(artifact => {
@@ -186,7 +196,7 @@ function FilesTab({ artifacts }) {
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    setTimeout(() => URL.revokeObjectURL(url), 100);
   }
 
   useEffect(() => {
