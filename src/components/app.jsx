@@ -214,6 +214,17 @@ export default function App() {
     }
   }
 
+  // Detect language from file extension
+  function detectLanguage(filepath) {
+    const ext = filepath.split('.').pop().toLowerCase();
+    const map = {
+      py: 'python', js: 'javascript', ts: 'typescript',
+      html: 'html', css: 'css', json: 'json', md: 'markdown',
+      txt: 'text', sh: 'bash', yaml: 'yaml', yml: 'yaml'
+    };
+    return map[ext] || 'text';
+  }
+
   async function handleSelectTask(taskId) {
     console.log("[handleSelectTask] called with taskId:", taskId);
     // Don't clear events if we're already on this task
@@ -295,6 +306,22 @@ export default function App() {
         ));
         setTaskStatus('complete');
         setIsLive(false);
+      }
+      
+      // Handle file creation events for live file updates
+      if (data.event_type === 'tool_call') {
+        const toolName = data.action?.tool_name;
+        if (toolName === 'create_file' && data.action?.tool_args?.filepath) {
+          const newArtifact = {
+            filepath: data.action.tool_args.filepath,
+            content: data.action.tool_args.content || '',
+            language: detectLanguage(data.action.tool_args.filepath)
+          };
+          setArtifacts(prev => {
+            const exists = prev.some(a => a.filepath === newArtifact.filepath);
+            return exists ? prev : [...prev, newArtifact];
+          });
+        }
       }
       
       const uiEvent = mapBackendEventToUI(data);

@@ -1,5 +1,11 @@
 import React from 'react';
 
+// Clean undefined from thought text
+function cleanThought(text) {
+  if (!text) return '';
+  return text.replace(/\.?undefined\s*$/, '').trim();
+}
+
 // Typewriter component for character-by-character typing animation
 export function Typewriter({ text, speed = 12, onComplete }) {
   const [displayed, setDisplayed] = React.useState('');
@@ -7,14 +13,15 @@ export function Typewriter({ text, speed = 12, onComplete }) {
   const indexRef = React.useRef(0);
 
   React.useEffect(() => {
-    if (!text) return;
+    const cleanedText = cleanThought(text);
+    if (!cleanedText) return;
     indexRef.current = 0;
     setDisplayed('');
     setDone(false);
 
     const interval = setInterval(() => {
-      if (indexRef.current < text.length) {
-        setDisplayed(prev => prev + text[indexRef.current]);
+      if (indexRef.current < cleanedText.length) {
+        setDisplayed(prev => prev + cleanedText[indexRef.current]);
         indexRef.current++;
       } else {
         clearInterval(interval);
@@ -36,6 +43,8 @@ export function Typewriter({ text, speed = 12, onComplete }) {
 
 // ThinkingBubble component with expanded/collapsed states
 export function ThinkingBubble({ thought, isCollapsed, elapsedSeconds, onToggle }) {
+  const cleanedThought = cleanThought(thought);
+  
   if (isCollapsed) {
     return (
       <div className="thinking-bubble collapsed" onClick={onToggle}>
@@ -55,7 +64,7 @@ export function ThinkingBubble({ thought, isCollapsed, elapsedSeconds, onToggle 
         <span className="thinking-label">Thinking...</span>
       </div>
       <div className="thinking-content">
-        <Typewriter text={thought} speed={12} />
+        <Typewriter text={cleanedThought} speed={12} />
       </div>
     </div>
   );
