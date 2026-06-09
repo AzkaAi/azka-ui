@@ -71,7 +71,7 @@ function TaskRow({ task, selected, onSelect, onCancel, onTaskUpdate }) {
   );
 }
 
-export function LeftPanel({ tasks, selectedId, onSelect, onStartTask, onCancel, onTaskUpdate }) {
+export function LeftPanel({ tasks, selectedId, selectedTask, chatInput, onSelect, onStartTask, onCancel, onTaskUpdate, onChatSubmit, onNewTask, onChatInputChange }) {
   const [taskInput, setTaskInput] = useState('');
   
   async function handleSubmit() {
@@ -84,24 +84,60 @@ export function LeftPanel({ tasks, selectedId, onSelect, onStartTask, onCancel, 
     }
   }
   
+  async function handleChatSubmit() {
+    if (chatInput.trim() && selectedTask) {
+      await onChatSubmit(chatInput);
+    }
+  }
+  
   return (
     <aside className="left">
-      <div className="submit-form">
-        <div className="field">
-          <div className="field-label">
-            Task<span className="opt">plain English or issue URL</span>
+      {selectedTask ? (
+        <div className="chat-mode">
+          <div className="chat-context">
+            <span className="chat-context-icon">📁</span>
+            <span className="chat-context-name">
+              {selectedTask.description?.slice(0, 40)}...
+            </span>
+            <button 
+              className="chat-new-task"
+              onClick={onNewTask}
+            >
+              + New Task
+            </button>
           </div>
           <textarea
-            className="task-input"
-            value={taskInput}
-            onChange={(e) => setTaskInput(e.target.value)}
-            placeholder="Describe your task..."
+            className="chat-input"
+            placeholder="Ask the agent to make changes..."
+            value={chatInput}
+            onChange={(e) => onChatInputChange(e.target.value)}
+            rows={3}
           />
+          <button 
+            className="chat-submit-btn"
+            onClick={handleChatSubmit}
+          >
+            ⚡ Make Changes
+          </button>
         </div>
-        <button className="submit-btn" onClick={handleSubmit}>
-          <Icon name="zap" /> Launch Agent
-        </button>
-      </div>
+      ) : (
+        <div className="submit-form">
+          <div className="field">
+            <div className="field-label">
+              Task<span className="opt">plain English or issue URL</span>
+            </div>
+            <textarea
+              className="task-input"
+              value={taskInput}
+              onChange={(e) => setTaskInput(e.target.value)}
+              placeholder="Describe your task..."
+            />
+          </div>
+          <button className="submit-btn" onClick={handleSubmit}>
+            <Icon name="zap" /> Launch Agent
+          </button>
+        </div>
+      )}
       <div className="panel-head">
         <span className="t">History</span>
         <span className="count">{tasks.length}</span>
@@ -118,7 +154,7 @@ export function LeftPanel({ tasks, selectedId, onSelect, onStartTask, onCancel, 
               key={t.task_id || t.id}
               task={t}
               selected={(t.task_id || t.id) === selectedId}
-              onSelect={() => onSelect(t.task_id || t.id)}
+              onSelect={() => onSelect(t.task_id || t.id, t)}
               onCancel={onCancel}
               onTaskUpdate={onTaskUpdate}
             />
@@ -140,25 +176,9 @@ function FilesTab({ artifacts }) {
     if (!filepath) return '';
     const parts = filepath.split('/');
     const workspaceIdx = parts.indexOf('workspace');
-    
     if (workspaceIdx !== -1 && parts.length > workspaceIdx + 2) {
-      // workspace/{task_id}/file -> file
       return parts.slice(workspaceIdx + 2).join('/');
     }
-    
-    const trajIdx = parts.indexOf('trajectory-0');
-    if (trajIdx !== -1 && parts.length > trajIdx + 1) {
-      // trajectory-0/workspace/{task_id}/file -> file
-      const afterTraj = parts.slice(trajIdx + 1);
-      const wsIdx = afterTraj.indexOf('workspace');
-      if (wsIdx !== -1 && afterTraj.length > wsIdx + 2) {
-        return afterTraj.slice(wsIdx + 2).join('/');
-      }
-      // trajectory-0/file -> file
-      return afterTraj.join('/');
-    }
-    
-    // Fallback - just return the filename
     return parts[parts.length - 1];
   }
 
@@ -365,25 +385,9 @@ function ArtifactsTab({ artifacts }) {
     if (!filepath) return '';
     const parts = filepath.split('/');
     const workspaceIdx = parts.indexOf('workspace');
-    
     if (workspaceIdx !== -1 && parts.length > workspaceIdx + 2) {
-      // workspace/{task_id}/file -> file
       return parts.slice(workspaceIdx + 2).join('/');
     }
-    
-    const trajIdx = parts.indexOf('trajectory-0');
-    if (trajIdx !== -1 && parts.length > trajIdx + 1) {
-      // trajectory-0/workspace/{task_id}/file -> file
-      const afterTraj = parts.slice(trajIdx + 1);
-      const wsIdx = afterTraj.indexOf('workspace');
-      if (wsIdx !== -1 && afterTraj.length > wsIdx + 2) {
-        return afterTraj.slice(wsIdx + 2).join('/');
-      }
-      // trajectory-0/file -> file
-      return afterTraj.join('/');
-    }
-    
-    // Fallback - just return the filename
     return parts[parts.length - 1];
   }
 

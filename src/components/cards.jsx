@@ -335,6 +335,29 @@ function RunCard({ ev }) {
                   'command';
   const stdout = ev?.observation?.stdout || ev?.result || '';
   const exitCode = ev?.observation?.exit_code ?? ev?.exit ?? 0;
+  const [displayedOutput, setDisplayedOutput] = React.useState('');
+  
+  React.useEffect(() => {
+    if (!stdout) return;
+    
+    let i = 0;
+    const lines = stdout.split('\n');
+    let lineIndex = 0;
+    
+    const interval = setInterval(() => {
+      if (lineIndex < lines.length) {
+        setDisplayedOutput(prev => 
+          prev + (prev ? '\n' : '') + lines[lineIndex]
+        );
+        lineIndex++;
+      } else {
+        clearInterval(interval);
+      }
+    }, 50); // One line per 50ms
+    
+    return () => clearInterval(interval);
+  }, [stdout]);
+  
   const isSuccess = exitCode === 0;
   
   return (
@@ -351,9 +374,9 @@ function RunCard({ ev }) {
           <span className="terminal-prompt">$</span>
           <span className="terminal-cmd-text">{command}</span>
         </div>
-        {stdout && (
+        {displayedOutput && (
           <div className="terminal-output">
-            {stdout}
+            {displayedOutput}
           </div>
         )}
       </div>

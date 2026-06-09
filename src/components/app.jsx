@@ -90,6 +90,8 @@ export default function App() {
   const [tasks, setTasks] = useState([]);
   const [events, setEvents] = useState([]);
   const [selectedId, setSelectedId] = useState(null);
+  const [selectedTask, setSelectedTask] = useState(null);
+  const [chatInput, setChatInput] = useState('');
   const [wsConnection, setWsConnection] = useState(null);
   const [turnCount, setTurnCount] = useState(0);
   const [totalCost, setTotalCost] = useState(0);
@@ -226,12 +228,17 @@ export default function App() {
     return map[ext] || 'text';
   }
 
-  async function handleSelectTask(taskId) {
+  async function handleSelectTask(taskId, taskObj = null) {
     console.log("[handleSelectTask] called with taskId:", taskId);
     // Don't clear events if we're already on this task
     if (selectedId === taskId) {
       console.log("[handleSelectTask] Already on this task, skipping");
       return;
+    }
+    
+    // Set selected task for chat mode
+    if (taskObj) {
+      setSelectedTask(taskObj);
     }
     
     console.log("[handleSelectTask] Clearing events and switching to task");
@@ -312,16 +319,38 @@ export default function App() {
       // Handle file creation events for live file updates
       if (data.event_type === 'tool_call') {
         const toolName = data.action?.tool_name;
-        if (toolName === 'create_file' && data.action?.tool_args?.filepath) {
-          const newArtifact = {
-            filepath: data.action.tool_args.filepath,
-            content: data.action.tool_args.content || '',
-            language: detectLanguage(data.action.tool_args.filepath)
-          };
-          setArtifacts(prev => {
-            const exists = prev.some(a => a.filepath === newArtifact.filepath);
-            return exists ? prev : [...prev, newArtifact];
-          });
+        
+        if (toolName === 'create_file') {
+          const filepath = data.action?.tool_args?.filepath;
+          const content = data.action?.tool_args?.content || '';
+          
+          if (filepath) {
+            setArtifacts(prev => {
+              const exists = prev.some(a => a.filepath === filepath);
+              if (exists) return prev;
+              return [...prev, {
+                filepath,
+                content,
+                language: detectLanguage(filepath)
+              }];
+            });
+          }
+        }
+        
+        if (toolName === 'edit_file') {
+          const filepath = data.action?.tool_args?.filepath;
+          const newContent = data.action?.tool_args?.new_string;
+          
+          if (filepath && newContent) {
+            setArtifacts(prev => prev.map(a => 
+              a.filepath === filepath 
+                ? {...a, content: a.content.replace(
+                    data.action.tool_args.old_string, 
+                    newContent
+                  )}
+                : a
+            ));
+          }
         }
       }
       
@@ -395,11 +424,59 @@ export default function App() {
       )
     );
   }
+  
+  function handleChatInputChange(value) {
+    setChatInput(value);
+  }
+  
+  function handleNewTask() {
+    setSelectedTask(null);
+    setChatInput('');
+    setSelectedId(null);
+  }
+  
+  async function handleChatSubmit() {
+    if (!chatInput.trim() || !selectedTask) return;
+    
+    const enrichedDescription = 
+      `Continue working on this project: ${selectedTask.description}\n\n` +
+      `The project files are in /workspace/${selectedTask.task_id}/\n\n` +
+      `New request: ${chatInput.trim()}`;
+    
+    const response = await fetch(
+      'https://api.azkaai.com/spawn-subtask',
+      {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          task_description: enrichedDescription,
+          parent_task_id: selectedTask.task_id
+        })
+      }
+    );
+    
+    const data = await response.json();
+    setChatInput('');
+    // Switch to new task
+    handleSelectTask(data.task_id, {task_id: data.task_id, description: chatInput});
+  }
 
   return (
     <div className="app">
       <Header selectedId={selectedId} onCancel={handleCancelTask} />
-      <LeftPanel tasks={tasks} selectedId={selectedId} onSelect={handleSelectTask} onStartTask={handleStartTask} onCancel={handleCancelTask} onTaskUpdate={handleTaskUpdate} />
+      <LeftPanel 
+        tasks={tasks} 
+        selectedId={selectedId} 
+        selectedTask={selectedTask}
+        chatInput={chatInput}
+        onSelect={handleSelectTask} 
+        onStartTask={handleStartTask} 
+        onCancel={handleCancelTask} 
+        onTaskUpdate={handleTaskUpdate}
+        onChatSubmit={handleChatSubmit}
+        onNewTask={handleNewTask}
+        onChatInputChange={handleChatInputChange}
+      />
       <CenterFeed events={events} insights={insights} onOpenArtifact={handleOpenArtifact} isLive={isLive} />
       <RightPanel artifacts={artifacts} />
       <Footer turnCount={turnCount} totalCost={totalCost} activeSandboxes={activeSandboxes} />
