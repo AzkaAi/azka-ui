@@ -137,26 +137,25 @@ function FilesTab({ artifacts }) {
   
   // Get display path - strip workspace prefixes
   function getDisplayPath(filepath) {
-    if (!filepath) return "";
-    const parts = filepath.split("/");
-    
-    // Handle trajectory-0/workspace/{task_id}/ pattern
-    const trajIdx = parts.findIndex(p => p === "trajectory-0");
-    const workspaceIdx = parts.findIndex(p => p === "workspace");
-    
-    if (trajIdx !== -1 && workspaceIdx !== -1 && workspaceIdx > trajIdx) {
-      // Both trajectory-0 and workspace present, skip both and task_id
-      return parts.slice(workspaceIdx + 2).join("/");
-    }
+    if (!filepath) return '';
+    const parts = filepath.split('/');
+    const workspaceIdx = parts.indexOf('workspace');
     
     if (workspaceIdx !== -1 && parts.length > workspaceIdx + 2) {
-      // Only workspace present, skip workspace and task_id
-      return parts.slice(workspaceIdx + 2).join("/");
+      // workspace/{task_id}/file -> file
+      return parts.slice(workspaceIdx + 2).join('/');
     }
     
-    if (trajIdx !== -1) {
-      // Only trajectory-0 present
-      return parts.slice(trajIdx + 1).join("/");
+    const trajIdx = parts.indexOf('trajectory-0');
+    if (trajIdx !== -1 && parts.length > trajIdx + 1) {
+      // trajectory-0/workspace/{task_id}/file -> file
+      const afterTraj = parts.slice(trajIdx + 1);
+      const wsIdx = afterTraj.indexOf('workspace');
+      if (wsIdx !== -1 && afterTraj.length > wsIdx + 2) {
+        return afterTraj.slice(wsIdx + 2).join('/');
+      }
+      // trajectory-0/file -> file
+      return afterTraj.join('/');
     }
     
     // Fallback - just return the filename

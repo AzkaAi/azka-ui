@@ -157,6 +157,18 @@ export default function App() {
       const ws = connectWebSocket(taskId, (data) => {
         console.log("[RENDER CALLBACK]", data);
         console.log("[Event received]", data.event_type, data.seq_id);
+        
+        // Update task status on task_complete
+        if (data.event_type === 'task_complete' || data.action?.tool_name === 'finish') {
+          console.log("[Task complete detected] Updating task status to completed");
+          setTasks(prev => prev.map(t => 
+            (t.task_id === taskId || t.id === taskId) 
+              ? {...t, status: 'completed'} 
+              : t
+          ));
+          setTaskStatus('complete');
+        }
+        
         const uiEvent = mapBackendEventToUI(data);
         console.log("[Mapped to UI event]", uiEvent.type, uiEvent);
         setEvents(prev => [...prev, uiEvent]);
@@ -252,9 +264,24 @@ export default function App() {
     console.log("[handleSelectTask] Calling switchToTask with taskId:", taskId);
     // Use switchToTask pattern for history loading and WebSocket connection
     // This is called for EVERY task click regardless of status
+    let hasTaskComplete = false;
     switchToTask(taskId, (data) => {
       console.log("[RENDER CALLBACK]", data);
       console.log("[Event received in switchToTask]", data.event_type, data.seq_id);
+      
+      // Update task status on task_complete
+      if (data.event_type === 'task_complete' || data.action?.tool_name === 'finish') {
+        hasTaskComplete = true;
+        console.log("[Task complete detected] Updating task status to completed");
+        setTasks(prev => prev.map(t => 
+          (t.task_id === taskId || t.id === taskId) 
+            ? {...t, status: 'completed'} 
+            : t
+        ));
+        setTaskStatus('complete');
+        setIsLive(false);
+      }
+      
       const uiEvent = mapBackendEventToUI(data);
       console.log("[Mapped to UI event in switchToTask]", uiEvent.type, uiEvent);
       setEvents(prev => [...prev, uiEvent]);
@@ -290,6 +317,15 @@ export default function App() {
         loadTasks();
       }
     });
+    
+    // After loading history, if no task_complete found, set status to active
+    setTimeout(() => {
+      if (!hasTaskComplete) {
+        console.log("[No task_complete found] Setting status to active");
+        setTaskStatus('active');
+        setIsLive(true);
+      }
+    }, 500);
   }
 
   function handleOpenArtifact(artifactId) {

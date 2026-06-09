@@ -7,16 +7,36 @@ export function renderEvent(event) {
   const eventType = event?.event_type || event?.type || 'unknown';
   const toolName = event?.action?.tool_name || event?.tool_name || 'unknown';
   const thought = event?.action?.thought || event?.thought || '';
+  const command = event?.action?.tool_args?.command || 
+                  event?.tool_args?.command ||
+                  event?.action?.command ||
+                  toolName;
   const stdout = event?.observation?.stdout || event?.result || 
                  JSON.stringify(event, null, 2);
   const exitCode = event?.observation?.exit_code ?? 0;
+  
+  // Tool icons mapping
+  const toolIcons = {
+    'create_file': '📄',
+    'create_folder': '📁',
+    'edit_file': '✏️',
+    'run_command': '⚡',
+    'view_file': '👁️',
+    'finish': '✅',
+    'search_dir': '🔍',
+    'web_research': '🌐',
+    'run_tests': '🧪',
+    'unknown': '⚙️'
+  };
+  
+  const icon = toolIcons[toolName] || toolIcons['unknown'];
   
   // Try to use existing card types first
   switch (eventType) {
     case 'thinking':   return <ThinkingCard key={event.seq_id || Math.random()} ev={{...event, text: thought || 'Thinking...'}} />;
     case 'view':       return <ViewCard key={event.seq_id || Math.random()} ev={event} />;
     case 'edit':       return <EditCard key={event.seq_id || Math.random()} ev={event} />;
-    case 'run':        return <RunCard key={event.seq_id || Math.random()} ev={event} />;
+    case 'run':        return <RunCard key={event.seq_id || Math.random()} event={event} />;
     case 'search':     return <SearchCard key={event.seq_id || Math.random()} ev={event} />;
     case 'web':        return <WebCard key={event.seq_id || Math.random()} ev={event} />;
     case 'artifact':   return <ArtifactCard key={event.seq_id || Math.random()} ev={event} />;
@@ -28,19 +48,20 @@ export function renderEvent(event) {
     case 'finish':     return <FinishCard key={event.seq_id || Math.random()} ev={event} />;
   }
   
-  // Fallback for unknown types - show minimal card
+  // Fallback for unknown types - show minimal card with icon
   return <Shell 
     key={event.seq_id || Math.random()}
     hueClass="hue-blue"
     icoClass="ico-blue"
     icon="terminal"
+    iconEmoji={icon}
     type={toolName}
     title={toolName}
     defaultOpen={true}
   >
     <div className="run-lines">
       <div className="run-line cmd">
-        <span className="p">~/workspace</span> $ {toolName}
+        <span className="p">~/workspace</span> $ {command}
       </div>
       <div className="run-line o">
         <pre style={{ margin: 0, whiteSpace: 'pre-wrap', fontSize: '12px' }}>
@@ -52,7 +73,7 @@ export function renderEvent(event) {
 }
 
 // Generic collapsible shell ---------------------------------
-function Shell({ hueClass, icoClass, icon, type, title, meta, defaultOpen, collapsible = true, children }) {
+function Shell({ hueClass, icoClass, icon, iconEmoji, type, title, meta, defaultOpen, collapsible = true, children }) {
   const [open, setOpen] = useState(!!defaultOpen);
   const isOpen = collapsible ? open : true;
   return (
@@ -62,7 +83,11 @@ function Shell({ hueClass, icoClass, icon, type, title, meta, defaultOpen, colla
         onClick={() => collapsible && setOpen(o => !o)}
         style={collapsible ? null : { cursor: 'default' }}
       >
-        <span className={'card-ico ' + icoClass}><Icon name={icon} /></span>
+        {iconEmoji ? (
+          <span className="card-ico emoji">{iconEmoji}</span>
+        ) : (
+          <span className={'card-ico ' + icoClass}><Icon name={icon} /></span>
+        )}
         <span className="card-type">{type}</span>
         <span className="card-title">{title}</span>
         {meta ? <span className="card-meta">{meta}</span> : null}
@@ -97,34 +122,77 @@ function ThinkingCard({ ev }) {
 export function SessionInsightsCard({ insights }) {
   if (!insights) return null;
   
-  // Render markdown to HTML using marked
-  const renderInsights = (text) => {
-    if (!text) return "";
-    if (typeof window !== 'undefined' && window.marked) {
-      return window.marked.parse(text);
-    }
-    // Fallback: simple markdown rendering
-    return text
-      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-      .replace(/\*(.*?)\*/g, '<em>$1</em>')
-      .replace(/`(.*?)`/g, '<code>$1</code>')
-      .replace(/\n/g, '<br>');
-  };
+  // Parse the insights text into sections
+  const sections = parseInsights(insights);
   
   return (
-    <div className="card insights-card" style={{ border: '1px solid rgba(255,255,255,0.1)' }}>
-      <div className="card-head">
-        <span className="card-ico ico-info"><Icon name="info" /></span>
-        <span className="card-type">Session Insights</span>
+    <div className="session-insights-card">
+      <div className="insights-header">
+        <div className="insights-icon">✦</div>
+        <span className="insights-title">Session Insights</span>
       </div>
-      <div className="card-body">
-        <div 
-          className="insights-content"
-          dangerouslySetInnerHTML={{__html: renderInsights(insights)}}
-        />
+      <div className="insights-body">
+        {sections.map((section, i) => (
+          <div key={i} className="insights-section">
+            {section.heading && (
+              <div className="insights-section-heading">
+                {section.heading}
+              </div>
+            )}
+            <div className="insights-section-content">
+              {section.content}
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );
+}
+
+function parseInsights(text) {
+  if (!text) return [];
+  
+  // Remove markdown headers and split into sections
+  const lines = text.split('\n').filter(l => l.trim());
+  const sections = [];
+  let currentSection = null;
+  
+  for (const line of lines) {
+    const trimmed = line.trim();
+    
+    // Detect bold headers like **What was accomplished:**
+    const boldHeader = trimmed.match(/^\*\*(.+?):\*\*\s*(.*)/);
+    if (boldHeader) {
+      if (currentSection) sections.push(currentSection);
+      currentSection = {
+        heading: boldHeader[1],
+        content: boldHeader[2] || ''
+      };
+      continue;
+    }
+    
+    // Detect ## headers
+    const markdownHeader = trimmed.match(/^#+\s+(.+)/);
+    if (markdownHeader) {
+      if (currentSection) sections.push(currentSection);
+      currentSection = {
+        heading: null,
+        content: markdownHeader[1]
+      };
+      continue;
+    }
+    
+    // Regular content
+    if (currentSection) {
+      currentSection.content += (currentSection.content ? ' ' : '') + 
+                                 trimmed.replace(/\*\*/g, '');
+    } else {
+      currentSection = { heading: null, content: trimmed.replace(/\*\*/g, '') };
+    }
+  }
+  
+  if (currentSection) sections.push(currentSection);
+  return sections.filter(s => s.content.trim());
 }
 
 // 2 · View File ---------------------------------------------
@@ -197,34 +265,35 @@ function EditCard({ ev }) {
 
 // 4 · Run Command -------------------------------------------
 function RunCard({ ev }) {
-  const ok = ev.exit === 0;
+  const command = ev?.action?.tool_args?.command?.join(' ') || 
+                  ev?.action?.command ||
+                  ev?.cmd ||
+                  'command';
+  const stdout = ev?.observation?.stdout || ev?.result || '';
+  const exitCode = ev?.observation?.exit_code ?? ev?.exit ?? 0;
+  const isSuccess = exitCode === 0;
+  
   return (
-    <Shell
-      hueClass="h-run"
-      icoClass="ico-dark"
-      icon="terminal"
-      type="Run"
-      defaultOpen={ev.open}
-      title={<span className="mono">{ev.cmd}</span>}
-      meta={
-        <>
-          <span style={{ fontSize: '11px' }}>{ev.duration}</span>
-          <span className={'exit ' + (ok ? 'ok' : 'fail')}>
-            <Icon name={ok ? 'check' : 'x'} /> exit {ev.exit}
-          </span>
-        </>
-      }
-    >
-      <div className="terminal scroll">
-        {ev.lines.map((l, i) => (
-          <div
-            key={i}
-            className={l.c === 'cmd' ? 'cmd-line' : 'o'}
-            dangerouslySetInnerHTML={{ __html: l.html || '\u200b' }}
-          />
-        ))}
+    <div className="tool-card run-card">
+      <div className="card-header">
+        <span className="tool-icon">⚡</span>
+        <span className="card-title">Run Command</span>
+        <span className={`exit-badge ${isSuccess ? 'success' : 'error'}`}>
+          {isSuccess ? '✓' : '✗'} exit {exitCode}
+        </span>
       </div>
-    </Shell>
+      <div className="terminal-block">
+        <div className="terminal-command">
+          <span className="terminal-prompt">$</span>
+          <span className="terminal-cmd-text">{command}</span>
+        </div>
+        {stdout && (
+          <div className="terminal-output">
+            {stdout}
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
 
