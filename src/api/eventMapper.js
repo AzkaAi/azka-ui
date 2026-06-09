@@ -53,7 +53,7 @@ export function mapBackendEventToUI(backendEvent) {
       } else {
         // Default to run command
         const cmd = action?.tool_args?.command;
-        const commandStr = Array.isArray(cmd) ? cmd.join(' ') : String(cmd || 'command');
+        const commandStr = Array.isArray(cmd) ? cmd.join(' ') : String(cmd || '');
         return {
           type: 'run',
           open: true,
@@ -93,7 +93,7 @@ export function mapBackendEventToUI(backendEvent) {
       const stdout = observation?.stdout || observation?.result || '';
       const stderr = observation?.stderr || observation?.error || '';
       const cmd = action.tool_args?.command;
-      const commandStr = Array.isArray(cmd) ? cmd.join(' ') : String(cmd || 'command');
+      const commandStr = Array.isArray(cmd) ? cmd.join(' ') : String(cmd || '');
       return {
         type: 'run',
         open: true,
