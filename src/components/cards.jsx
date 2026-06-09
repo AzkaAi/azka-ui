@@ -105,6 +105,18 @@ function Shell({ hueClass, icoClass, icon, iconEmoji, type, title, meta, default
 // 1 · Thinking ----------------------------------------------
 function ThinkingCard({ ev }) {
   const [open, setOpen] = useState(!!ev.open);
+  
+  // Clean undefined from thought text
+  const cleanThought = (text) => {
+    if (!text) return '';
+    return text
+      .replace(/\.?undefined\s*$/gi, '')
+      .replace(/undefined/gi, '')
+      .trim();
+  };
+  
+  const cleanedText = cleanThought(ev.text);
+  
   return (
     <div className={'card thinking' + (open ? ' open' : '')}>
       <button className="card-head" onClick={() => setOpen(o => !o)}>
@@ -115,7 +127,7 @@ function ThinkingCard({ ev }) {
       </button>
       {open ? (
         <div className="card-body">
-          <p className="think-text" dangerouslySetInnerHTML={{ __html: ev.text }} />
+          <p className="think-text" dangerouslySetInnerHTML={{ __html: cleanedText }} />
         </div>
       ) : null}
     </div>

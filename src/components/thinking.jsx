@@ -3,7 +3,10 @@ import React from 'react';
 // Clean undefined from thought text
 function cleanThought(text) {
   if (!text) return '';
-  return text.replace(/\.?undefined\s*$/, '').trim();
+  return text
+    .replace(/\.?undefined\s*$/gi, '')
+    .replace(/undefined/gi, '')
+    .trim();
 }
 
 // Typewriter component for character-by-character typing animation
