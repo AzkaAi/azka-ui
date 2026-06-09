@@ -550,7 +550,7 @@ export function Footer({ turnCount, totalCost, activeSandboxes }) {
       <div className="foot-item foot-model">
         <span className="md" />
         <span className="fk">Model</span>
-        <span className="fv">DeepSeek v4-pro</span>
+        <span className="fv">DeepSeek v4-flash</span>
       </div>
       <div className="foot-sep" />
       <div className="foot-item">
