@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Icon } from './icons.jsx';
-import { useMonacoEditor, animateFileCreation, animateFileEdit, animateFileView } from '../hooks/useMonacoEditor.js';
 
 /* ---------- HEADER ---------- */
 export function Header({ selectedId, onCancel }) {
@@ -135,11 +134,7 @@ function FilesTab({ artifacts }) {
   const [selectedFile, setSelectedFile] = useState(null);
   const [fileContent, setFileContent] = useState('');
   const [language, setLanguage] = useState('');
-  const [isNewFile, setIsNewFile] = useState(false);
-  const containerRef = useRef(null);
   
-  const monacoEditor = useMonacoEditor(containerRef);
-
   // Get display path - strip workspace prefixes
   function getDisplayPath(filepath) {
     if (!filepath) return "";
@@ -199,42 +194,22 @@ function FilesTab({ artifacts }) {
     setTimeout(() => URL.revokeObjectURL(url), 100);
   }
 
-  useEffect(() => {
-    if (!artifacts || artifacts.length === 0) return;
-
-    // Just use artifacts directly - no tree building needed
-    // Select first file by default
-    if (artifacts.length > 0) {
-      const firstFile = artifacts[0];
-      setSelectedFile(firstFile.filepath);
-      setFileContent(firstFile.content);
-      setLanguage(firstFile.language);
-      setIsNewFile(true);
-      
-      // Animate file creation if Monaco is ready
-      if (monacoEditor.isReady) {
-        animateFileCreation(monacoEditor, firstFile.filepath, firstFile.content, firstFile.language);
-      }
-    }
-  }, [artifacts, monacoEditor.isReady]);
-
   const handleFileClick = (artifact) => {
-    console.log("[File clicked]", artifact.filepath, "content length:", artifact.content?.length, "editor ready:", monacoEditor.isReady);
+    console.log("[File clicked]", artifact.filepath, "content length:", artifact.content?.length);
     setSelectedFile(artifact.filepath);
     setFileContent(artifact.content);
     setLanguage(artifact.language);
-    setIsNewFile(false);
-    
-    // Load file content in Monaco editor
-    if (monacoEditor.isReady) {
-      console.log("[Monaco] Setting value, length:", artifact.content?.length);
-      monacoEditor.setValue(artifact.content || "");
-      monacoEditor.setLanguage(artifact.language || 'plaintext');
-      animateFileView(monacoEditor);
-    } else {
-      console.error("[Monaco] Editor not initialized");
-    }
   };
+
+  // Apply syntax highlighting
+  useEffect(() => {
+    if (fileContent && typeof window !== 'undefined' && window.hljs) {
+      const pre = document.querySelector('.file-viewer-pre code');
+      if (pre) {
+        window.hljs.highlightElement(pre);
+      }
+    }
+  }, [fileContent, language]);
 
   // Check if file is an image
   const isImage = selectedFile && (
@@ -245,16 +220,15 @@ function FilesTab({ artifacts }) {
     selectedFile.endsWith('.gif')
   );
 
-  // Apply syntax highlighting
+  // Select first file by default when artifacts load
   useEffect(() => {
-    if (fileContent && typeof window !== 'undefined' && window.hljs) {
-      const pre = document.querySelector('.code-content');
-      if (pre) {
-        pre.innerHTML = fileContent;
-        window.hljs.highlightElement(pre);
-      }
+    if (artifacts && artifacts.length > 0 && !selectedFile) {
+      const firstFile = artifacts[0];
+      setSelectedFile(firstFile.filepath);
+      setFileContent(firstFile.content);
+      setLanguage(firstFile.language);
     }
-  }, [fileContent, language]);
+  }, [artifacts, selectedFile]);
 
   if (!artifacts || artifacts.length === 0) {
     return (
@@ -305,17 +279,18 @@ function FilesTab({ artifacts }) {
         ))}
       </div>
       <div className="fileview">
-        <div className="fileview-head">
-          <span className="fp">
-            {selectedFile ? getDisplayPath(selectedFile) : 'Select a file'}
-          </span>
-          {selectedFile && language ? (
-            <span className="badge-mod" style={{ marginLeft: '8px' }}>{language}</span>
-          ) : null}
-        </div>
-        <div className="fileview-body scroll">
-          {selectedFile ? (
-            isImage ? (
+        {selectedFile ? (
+          isImage ? (
+            <div className="file-viewer">
+              <div className="file-viewer-header">
+                <span className="file-viewer-path">{getDisplayPath(selectedFile)}</span>
+                <button 
+                  className="file-download-btn-inline"
+                  onClick={() => downloadFile(selectedFile, fileContent)}
+                >
+                  ↓ Download
+                </button>
+              </div>
               <div style={{ padding: '16px', display: 'flex', justifyContent: 'center' }}>
                 <img 
                   src={fileContent.startsWith('data:') ? fileContent : `data:image/png;base64,${fileContent}`}
@@ -327,24 +302,31 @@ function FilesTab({ artifacts }) {
                   }}
                 />
               </div>
-            ) : (
-              <div 
-                ref={containerRef}
-                style={{ 
-                  width: '100%', 
-                  height: '100%', 
-                  minHeight: '400px',
-                  border: '1px solid var(--border)'
-                }}
-              />
-            )
-          ) : (
-            <div className="empty-state" style={{ height: '100%' }}>
-              <Icon name="fileCode" size={32} />
-              <p>Select a file to view its content</p>
             </div>
-          )}
-        </div>
+          ) : (
+            <div className="file-viewer">
+              <div className="file-viewer-header">
+                <span className="file-viewer-path">{getDisplayPath(selectedFile)}</span>
+                <button 
+                  className="file-download-btn-inline"
+                  onClick={() => downloadFile(selectedFile, fileContent)}
+                >
+                  ↓ Download
+                </button>
+              </div>
+              <pre className="file-viewer-pre">
+                <code className={`language-${language || 'plaintext'}`}>
+                  {fileContent}
+                </code>
+              </pre>
+            </div>
+          )
+        ) : (
+          <div className="empty-state" style={{ height: '100%' }}>
+            <Icon name="fileCode" size={32} />
+            <p>Select a file to view its content</p>
+          </div>
+        )}
       </div>
     </>
   );

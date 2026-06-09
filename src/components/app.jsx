@@ -32,6 +32,12 @@ function CenterFeed({ events, insights, onOpenArtifact, isLive = false }) {
 
   // Pair events for thought+action rendering
   const pairs = pairEvents(events, isLive);
+  
+  // Debug event rendering
+  console.log("[CenterFeed] Rendering", pairs.length, "event pairs, isLive:", isLive);
+  pairs.forEach((pair, index) => {
+    console.log("[CenterFeed] Pair", index, "thought:", !!pair.thought, "action:", pair.action?.type);
+  });
 
   return (
     <main className="center">
@@ -197,11 +203,14 @@ export default function App() {
   }
 
   async function handleSelectTask(taskId) {
+    console.log("[handleSelectTask] called with taskId:", taskId);
     // Don't clear events if we're already on this task
     if (selectedId === taskId) {
+      console.log("[handleSelectTask] Already on this task, skipping");
       return;
     }
     
+    console.log("[handleSelectTask] Clearing events and switching to task");
     setSelectedId(taskId);
     // Clear events when switching tasks
     setEvents([]);
@@ -240,6 +249,7 @@ export default function App() {
     // Set isLive based on whether task is active
     setIsLive(taskIsActive);
     
+    console.log("[handleSelectTask] Calling switchToTask with taskId:", taskId);
     // Use switchToTask pattern for history loading and WebSocket connection
     // This is called for EVERY task click regardless of status
     switchToTask(taskId, (data) => {

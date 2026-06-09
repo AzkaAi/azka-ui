@@ -926,6 +926,61 @@ input.repo-input { font-family: var(--mono); font-size: 12px; }
   background: rgba(99,102,241,0.35);
 }
 
+/* ---- FILE VIEWER ---- */
+.file-viewer {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.file-viewer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 16px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  font-size: 12px;
+  color: #9ca3af;
+  flex-shrink: 0;
+}
+
+.file-viewer-path {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+}
+
+.file-viewer-pre {
+  flex: 1;
+  overflow: auto;
+  margin: 0;
+  padding: 16px;
+  font-size: 13px;
+  line-height: 1.6;
+  background: #0d0d0d;
+}
+
+.file-viewer-pre code {
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+}
+
+.file-download-btn-inline {
+  padding: 3px 10px;
+  background: rgba(99,102,241,0.2);
+  border: 1px solid rgba(99,102,241,0.3);
+  border-radius: 4px;
+  color: #a5b4fc;
+  font-size: 11px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.file-download-btn-inline:hover {
+  background: rgba(99,102,241,0.35);
+}
+
 /* ---- INSIGHTS CONTENT ---- */
 .insights-content {
   line-height: 1.6;
