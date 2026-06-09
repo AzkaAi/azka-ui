@@ -306,7 +306,7 @@ function FilesTab({ artifacts }) {
               <div style={{ padding: '16px', display: 'flex', justifyContent: 'center' }}>
                 <img 
                   src={fileContent.startsWith('data:') ? fileContent : `data:image/png;base64,${fileContent}`}
-                  alt={selectedFile}
+                  alt={getDisplayPath(selectedFile)}
                   style={{ maxWidth: '100%', height: 'auto' }}
                   onError={(e) => {
                     console.error('Image load error:', e);

@@ -166,6 +166,22 @@ export class TaskSession {
         );
         renderCallback(event);
       });
+      
+      // After rendering all events, check if task is complete
+      const lastEvent = log[log.length - 1];
+      if (lastEvent && (
+        lastEvent.event_type === 'task_complete' || 
+        lastEvent.action?.tool_name === 'finish'
+      )) {
+        console.log("[loadHistory] Task complete detected, firing status update");
+        // Fire a synthetic status update
+        renderCallback({
+          event_type: 'task_status_update',
+          status: 'completed',
+          task_id: this.taskId
+        });
+      }
+      
       this.isLive = true;
       this.bufferedEvents
         .filter(e => e.seq_id > this.highestSeqId)

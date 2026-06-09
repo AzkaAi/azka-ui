@@ -271,6 +271,19 @@ export default function App() {
       console.log("[RENDER CALLBACK]", data);
       console.log("[Event received in switchToTask]", data.event_type, data.seq_id);
       
+      // Handle synthetic task status update
+      if (data.event_type === 'task_status_update') {
+        console.log("[Task status update] Setting status to completed");
+        setTasks(prev => prev.map(t => 
+          (t.task_id === data.task_id || t.id === data.task_id) 
+            ? {...t, status: 'completed'} 
+            : t
+        ));
+        setTaskStatus('complete');
+        setIsLive(false);
+        return; // Don't render a card for this
+      }
+      
       // Update task status on task_complete
       if (data.event_type === 'task_complete' || data.action?.tool_name === 'finish') {
         hasTaskComplete = true;
