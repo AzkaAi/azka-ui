@@ -8,7 +8,7 @@ import { mapBackendEventToUI } from '../api/eventMapper.js';
 import { pairEvents } from '../utils/eventPairing.js';
 import { useFaviconStatus } from '../hooks/useFaviconStatus.js';
 
-function CenterFeed({ events, insights, onOpenArtifact, isLive = false }) {
+function CenterFeed({ events, insights, onOpenArtifact, isLive = false, currentTaskId }) {
   const feedRef = useRef(null);
   const [showUnread, setShowUnread] = useState(false);
   const bottomRef = useRef(null);
@@ -497,7 +497,7 @@ export default function App() {
         onNewTask={handleNewTask}
         onChatInputChange={handleChatInputChange}
       />
-      <CenterFeed events={events} insights={insights} onOpenArtifact={handleOpenArtifact} isLive={isLive} />
+      <CenterFeed events={events} insights={insights} onOpenArtifact={handleOpenArtifact} isLive={isLive} currentTaskId={currentTaskId} />
       <RightPanel artifacts={artifacts} />
       <Footer turnCount={turnCount} totalCost={totalCost} activeSandboxes={activeSandboxes} />
     </div>
