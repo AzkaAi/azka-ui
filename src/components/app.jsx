@@ -177,6 +177,11 @@ export default function App() {
   }
 
   async function handleSelectTask(taskId) {
+    // Don't clear events if we're already on this task
+    if (selectedId === taskId) {
+      return;
+    }
+    
     setSelectedId(taskId);
     // Clear events when switching tasks
     setEvents([]);
