@@ -1,6 +1,56 @@
 import React, { useState } from 'react';
 import { Icon } from './icons.jsx';
 
+// Graceful event renderer for malformed events
+export function renderEvent(event) {
+  // Guard against malformed events
+  const eventType = event?.event_type || event?.type || 'unknown';
+  const toolName = event?.action?.tool_name || event?.tool_name || 'unknown';
+  const thought = event?.action?.thought || event?.thought || '';
+  const stdout = event?.observation?.stdout || event?.result || 
+                 JSON.stringify(event, null, 2);
+  const exitCode = event?.observation?.exit_code ?? 0;
+  
+  // Try to use existing card types first
+  switch (eventType) {
+    case 'thinking':   return <ThinkingCard key={event.seq_id || Math.random()} ev={{...event, text: thought || 'Thinking...'}} />;
+    case 'view':       return <ViewCard key={event.seq_id || Math.random()} ev={event} />;
+    case 'edit':       return <EditCard key={event.seq_id || Math.random()} ev={event} />;
+    case 'run':        return <RunCard key={event.seq_id || Math.random()} ev={event} />;
+    case 'search':     return <SearchCard key={event.seq_id || Math.random()} ev={event} />;
+    case 'web':        return <WebCard key={event.seq_id || Math.random()} ev={event} />;
+    case 'artifact':   return <ArtifactCard key={event.seq_id || Math.random()} ev={event} />;
+    case 'observation':return <ObservationCard key={event.seq_id || Math.random()} ev={event} />;
+    case 'interrupt':  return <InterruptCard key={event.seq_id || Math.random()} ev={event} />;
+    case 'human':      return <HumanCard key={event.seq_id || Math.random()} ev={event} />;
+    case 'mcts':       return <MctsCard key={event.seq_id || Math.random()} ev={event} />;
+    case 'task_complete': return <TaskCompleteCard key={event.seq_id || Math.random()} event={event} />;
+    case 'finish':     return <FinishCard key={event.seq_id || Math.random()} ev={event} />;
+  }
+  
+  // Fallback for unknown types - show minimal card
+  return <Shell 
+    key={event.seq_id || Math.random()}
+    hueClass="hue-blue"
+    icoClass="ico-blue"
+    icon="terminal"
+    type={toolName}
+    title={toolName}
+    defaultOpen={true}
+  >
+    <div className="run-lines">
+      <div className="run-line cmd">
+        <span className="p">~/workspace</span> $ {toolName}
+      </div>
+      <div className="run-line o">
+        <pre style={{ margin: 0, whiteSpace: 'pre-wrap', fontSize: '12px' }}>
+          {typeof stdout === 'string' ? stdout : JSON.stringify(stdout, null, 2)}
+        </pre>
+      </div>
+    </div>
+  </Shell>;
+}
+
 // Generic collapsible shell ---------------------------------
 function Shell({ hueClass, icoClass, icon, type, title, meta, defaultOpen, collapsible = true, children }) {
   const [open, setOpen] = useState(!!defaultOpen);
@@ -462,6 +512,6 @@ export function EventCard({ ev, onOpenArtifact }) {
     case 'mcts':       return <MctsCard ev={ev} />;
     case 'task_complete': return <TaskCompleteCard ev={ev} />;
     case 'finish':     return <FinishCard ev={ev} />;
-    default: return null;
+    default: return renderEvent(ev);
   }
 }

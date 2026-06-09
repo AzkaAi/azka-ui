@@ -139,14 +139,27 @@ function FilesTab({ artifacts }) {
   function getDisplayPath(filepath) {
     if (!filepath) return "";
     const parts = filepath.split("/");
+    
+    // Handle trajectory-0/workspace/{task_id}/ pattern
+    const trajIdx = parts.findIndex(p => p === "trajectory-0");
     const workspaceIdx = parts.findIndex(p => p === "workspace");
-    if (workspaceIdx !== -1 && parts.length > workspaceIdx + 2) {
+    
+    if (trajIdx !== -1 && workspaceIdx !== -1 && workspaceIdx > trajIdx) {
+      // Both trajectory-0 and workspace present, skip both and task_id
       return parts.slice(workspaceIdx + 2).join("/");
     }
-    const trajIdx = parts.findIndex(p => p === "trajectory-0");
+    
+    if (workspaceIdx !== -1 && parts.length > workspaceIdx + 2) {
+      // Only workspace present, skip workspace and task_id
+      return parts.slice(workspaceIdx + 2).join("/");
+    }
+    
     if (trajIdx !== -1) {
+      // Only trajectory-0 present
       return parts.slice(trajIdx + 1).join("/");
     }
+    
+    // Fallback - just return the filename
     return parts[parts.length - 1];
   }
 

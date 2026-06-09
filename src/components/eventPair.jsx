@@ -1,6 +1,6 @@
 import React from 'react';
 import { ThinkingBubble } from './thinking.jsx';
-import { EventCard } from './cards.jsx';
+import { renderEvent } from './cards.jsx';
 
 export function EventPair({ thought, thoughtSeconds, action, isLatest, isLive }) {
   const [thoughtCollapsed, setThoughtCollapsed] = React.useState(
@@ -37,9 +37,7 @@ export function EventPair({ thought, thoughtSeconds, action, isLatest, isLive })
           onToggle={() => setThoughtCollapsed(prev => !prev)}
         />
       )}
-      {action && (
-        <EventCard ev={action} />
-      )}
+      {action && renderEvent(action)}
     </div>
   );
 }
